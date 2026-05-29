@@ -1281,7 +1281,7 @@
       saveOnline({ manual: true });
     });
 
-    document.querySelector('copyProcessLink').addEventListener('click', async () => {
+    document.querySelector('#copyProcessLink').addEventListener('click', async () => {
       if (!processId) {
         await saveOnline({ copyLink: true });
         return;
@@ -1300,19 +1300,6 @@
         window.prompt('Copie o link do processo:', link);
         showToast('Copie o link manualmente.');
       }
-    
-    if (!processId) {
-      await saveOnline({ copyLink: true });
-      return;
-    }
-
-    await saveOnline();
-    try {
-      await navigator.clipboard.writeText(getShareUrl(processId));
-      showToast("Link do processo copiado.");
-    } catch {
-      showToast("Link do processo: " + getShareUrl(processId));
-    }
     });
 
     if (processId) {
