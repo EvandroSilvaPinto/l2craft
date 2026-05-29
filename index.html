@@ -55,6 +55,17 @@
       transform: translateY(-1px);
     }
 
+    button:disabled,
+    input:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+      transform: none;
+    }
+
+    button:disabled:hover {
+      transform: none;
+    }
+
     button:focus-visible,
     input:focus-visible {
       outline: 2px solid var(--teal);
@@ -319,6 +330,49 @@
     .actions {
       display: grid;
       gap: 10px;
+    }
+
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 36px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.035);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .sync-dot {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--muted);
+      box-shadow: 0 0 0 3px rgba(184, 174, 189, 0.1);
+    }
+
+    .sync-status.online .sync-dot {
+      background: var(--green);
+      box-shadow: 0 0 0 3px rgba(120, 217, 138, 0.14);
+    }
+
+    .sync-status.saving .sync-dot {
+      background: var(--gold);
+      box-shadow: 0 0 0 3px rgba(216, 172, 85, 0.14);
+    }
+
+    .sync-status.connecting .sync-dot {
+      background: var(--teal);
+      box-shadow: 0 0 0 3px rgba(104, 214, 197, 0.14);
+    }
+
+    .sync-status.error .sync-dot {
+      background: var(--red);
+      box-shadow: 0 0 0 3px rgba(255, 116, 111, 0.14);
     }
 
     .output-title {
@@ -587,6 +641,10 @@
           <button class="secondary" type="button" id="copyProcessLink">Copiar link do processo</button>
           <button class="secondary" type="button" id="resetInventory">Zerar inventario</button>
           <button class="secondary" type="button" id="fillRequired">Marcar tudo pronto</button>
+          <div class="sync-status local" id="syncStatusBox" role="status" aria-live="polite">
+            <span class="sync-dot" aria-hidden="true"></span>
+            <span id="syncStatusText">Somente local</span>
+          </div>
           <div class="toast" id="toast" role="status" aria-live="polite"></div>
         </div>
 
@@ -602,8 +660,8 @@
 
     <footer>
       Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2,440. A expectativa de sucesso e apenas media estatistica;
-      cada tentativa continua independente. Para compartilhar o progresso, configure Firebase, clique em Salvar online e
-      copie o link do processo.
+      cada tentativa continua independente. O processo salvo online sincroniza em tempo real pelo Firestore no GitHub
+      Pages.
     </footer>
   </main>
 
@@ -622,6 +680,17 @@
       2) Ative Firestore Database.
       3) Em Configuracoes do projeto > Seus apps > Web, copie o firebaseConfig.
       4) Substitua os valores abaixo.
+      5) Publique este arquivo no GitHub Pages. O Pages hospeda o HTML; o Firestore salva e sincroniza.
+
+      Regras abertas para teste:
+      rules_version = '2';
+      service cloud.firestore {
+        match /databases/{database}/documents {
+          match /craftProcesses/{processId} {
+            allow read, write: if true;
+          }
+        }
+      }
     */
     const firebaseConfig = {
       apiKey: "AIzaSyDGMM33fs6dTDWu9WMNLI4u6EQbqRovyFI",
@@ -639,6 +708,8 @@
     const urlParams = new URLSearchParams(window.location.search);
     let processId = urlParams.get("id");
     let isLoadingRemote = false;
+    let hasLoadedRemote = !processId;
+    let editingLocked = Boolean(processId);
     let saveOnlineTimer;
     let unsubscribeRealtime = null;
     let realtimeProcessId = null;
@@ -815,7 +886,13 @@
       missingKinds: document.querySelector("#missingKinds"),
       missingTotal: document.querySelector("#missingTotal"),
       missingList: document.querySelector("#missingList"),
-      toast: document.querySelector("#toast")
+      syncStatusBox: document.querySelector("#syncStatusBox"),
+      syncStatusText: document.querySelector("#syncStatusText"),
+      toast: document.querySelector("#toast"),
+      saveOnline: document.querySelector("#saveOnline"),
+      copyProcessLink: document.querySelector("#copyProcessLink"),
+      resetInventory: document.querySelector("#resetInventory"),
+      fillRequired: document.querySelector("#fillRequired")
     };
 
     const defaultState = {
@@ -842,6 +919,55 @@
       return url.toString();
     }
 
+    function getFirestoreRestUrl(id) {
+      return `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/craftProcesses/${encodeURIComponent(id)}?key=${firebaseConfig.apiKey}`;
+    }
+
+    function getFirestoreErrorMessage(payload) {
+      const error = payload?.error;
+      const reason = error?.details?.find((detail) => detail.reason)?.reason;
+
+      if (reason === "SERVICE_DISABLED") {
+        return "Ative Cloud Firestore no Firebase.";
+      }
+
+      if (error?.status === "PERMISSION_DENIED") {
+        return "Firestore sem permissao. Confira as regras.";
+      }
+
+      return "Erro no Firestore. Confira o Firebase.";
+    }
+
+    async function ensureFirestoreReady(id) {
+      const response = await fetch(getFirestoreRestUrl(id));
+      if (response.ok || response.status === 404) return;
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch {
+        // The status code is still enough to show a useful failure state.
+      }
+
+      throw new Error(getFirestoreErrorMessage(payload));
+    }
+
+    async function copyProcessLinkToClipboard(id = processId) {
+      const link = getShareUrl(id);
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(link);
+          showToast("Link do processo copiado.");
+        } else {
+          throw new Error("clipboard unavailable");
+        }
+      } catch {
+        window.prompt("Copie o link do processo:", link);
+        showToast("Copie o link manualmente.");
+      }
+    }
+
     function loadLocalState() {
       try {
         const stored = JSON.parse(localStorage.getItem(stateKey));
@@ -851,9 +977,26 @@
       }
     }
 
-    function saveState() {
+    function setSyncStatus(kind, message) {
+      elements.syncStatusBox.className = `sync-status ${kind}`;
+      elements.syncStatusText.textContent = message;
+    }
+
+    function setEditingLocked(locked) {
+      editingLocked = locked;
+      elements.craftQty.disabled = locked;
+      elements.saveOnline.disabled = locked;
+      elements.resetInventory.disabled = locked;
+      elements.fillRequired.disabled = locked;
+
+      document.querySelectorAll("[data-preset], [data-material], [data-toggle-subitems]").forEach((control) => {
+        control.disabled = locked;
+      });
+    }
+
+    function saveState({ online = true } = {}) {
       localStorage.setItem(stateKey, JSON.stringify(state));
-      scheduleOnlineSave();
+      if (online) scheduleOnlineSave();
     }
 
     function getPublicState() {
@@ -865,7 +1008,7 @@
       };
     }
 
-    function startRealtimeSync(id) {
+    function startRealtimeSync(id, { waitForRemote = true } = {}) {
       if (!firebaseEnabled || !id) return false;
       if (realtimeProcessId === id && unsubscribeRealtime) return true;
 
@@ -875,10 +1018,28 @@
       }
 
       realtimeProcessId = id;
+      hasLoadedRemote = !waitForRemote;
+      setEditingLocked(waitForRemote);
+      setSyncStatus(waitForRemote ? "connecting" : "saving", waitForRemote ? "Conectando ao processo" : "Salvando online");
+
+      ensureFirestoreReady(id).catch((error) => {
+        if (hasLoadedRemote) return;
+        console.error(error);
+        hasLoadedRemote = true;
+        isLoadingRemote = false;
+        setEditingLocked(false);
+        setSyncStatus("error", error.message);
+        showToast(error.message);
+      });
+
       unsubscribeRealtime = onSnapshot(
         doc(db, "craftProcesses", id),
         (snapshot) => {
+          hasLoadedRemote = true;
+          setEditingLocked(false);
+
           if (!snapshot.exists()) {
+            setSyncStatus("local", "Link sem processo salvo");
             showToast("Processo online ainda nao existe. Clique em Salvar online para criar.");
             return;
           }
@@ -886,13 +1047,19 @@
           isLoadingRemote = true;
           state = normalizeState(snapshot.data());
           localStorage.setItem(stateKey, JSON.stringify(state));
-          render();
+          render({ persist: false });
           isLoadingRemote = false;
-          showToast("Atualizado em tempo real.");
+          setSyncStatus(
+            snapshot.metadata.hasPendingWrites ? "saving" : "online",
+            snapshot.metadata.hasPendingWrites ? "Salvando online" : "Online em tempo real"
+          );
         },
         (error) => {
           console.error(error);
+          hasLoadedRemote = true;
           isLoadingRemote = false;
+          setEditingLocked(false);
+          setSyncStatus("error", "Erro na sincronizacao");
           showToast("Erro no tempo real. Confira Firebase, Firestore e regras.");
         }
       );
@@ -903,6 +1070,12 @@
     async function saveOnline({ copyLink = false, manual = false } = {}) {
       if (!firebaseEnabled) {
         showToast("Configure o firebaseConfig no codigo antes de salvar online.");
+        setSyncStatus("error", "Firebase nao configurado");
+        return;
+      }
+
+      if (processId && !hasLoadedRemote) {
+        showToast("Aguarde o processo online carregar.");
         return;
       }
 
@@ -912,26 +1085,32 @@
           const url = new URL(window.location.href);
           url.searchParams.set("id", processId);
           window.history.replaceState({}, "", url);
+          hasLoadedRemote = true;
         }
 
+        window.clearTimeout(saveOnlineTimer);
+        setSyncStatus("saving", "Salvando online");
+        await ensureFirestoreReady(processId);
         await setDoc(doc(db, "craftProcesses", processId), getPublicState(), { merge: true });
-        startRealtimeSync(processId);
+        startRealtimeSync(processId, { waitForRemote: false });
 
         if (copyLink) {
-          await navigator.clipboard.writeText(getShareUrl(processId));
-          showToast("Processo salvo e link copiado.");
+          await copyProcessLinkToClipboard(processId);
         } else if (manual) {
           showToast("Processo salvo online.");
         }
       } catch (error) {
         console.error(error);
-        showToast("Erro ao salvar online. Verifique Firebase, Firestore e regras.");
+        const message = error?.message || "Erro ao salvar online";
+        setSyncStatus("error", message);
+        showToast(message);
       }
     }
 
     function scheduleOnlineSave() {
-      if (!firebaseEnabled || !processId || isLoadingRemote) return;
+      if (!firebaseEnabled || !processId || isLoadingRemote || !hasLoadedRemote) return;
       window.clearTimeout(saveOnlineTimer);
+      setSyncStatus("saving", "Salvando online");
       saveOnlineTimer = window.setTimeout(() => saveOnline(), 650);
     }
 
@@ -1090,20 +1269,23 @@
       elements.overallProgressUnits.textContent = `${formatNumber(progress.have)} / ${formatNumber(progress.required)} materiais`;
     }
 
-    function render() {
+    function render({ persist = true, online = true } = {}) {
       state.quantity = Math.max(toSafeNumber(state.quantity, 20), 1);
       elements.craftQty.value = state.quantity;
+      elements.craftQty.disabled = editingLocked;
       elements.expectedSuccess.textContent = (state.quantity * recipe.successRate).toFixed(1);
       elements.mpTotal.textContent = formatNumber(state.quantity * recipe.mpPerCraft);
 
       document.querySelectorAll("[data-preset]").forEach((button) => {
         button.classList.toggle("active", Number(button.dataset.preset) === state.quantity);
+        button.disabled = editingLocked;
       });
 
       renderMaterials();
       renderOverallProgress();
       renderMissing();
-      saveState();
+      setEditingLocked(editingLocked);
+      if (persist) saveState({ online });
     }
 
     function renderMaterials() {
@@ -1145,6 +1327,7 @@
                 value="${have}"
                 aria-label="Tenho ${row.name}"
                 data-material="${row.name}"
+                ${editingLocked ? "disabled" : ""}
               />
             </div>
             <div class="cell ${missing === 0 ? "ready" : "missing"}" data-label="Falta">
@@ -1161,6 +1344,7 @@
                   data-toggle-subitems="${row.name}"
                   aria-label="${expanded ? "Recolher" : "Expandir"} subitens de ${row.name}. Craftar ${formatNumber(row.craftQty)}."
                   title="Craftar ${formatNumber(row.craftQty)}"
+                  ${editingLocked ? "disabled" : ""}
                 >${expanded ? "-" : "+"}</button>
               ` : ""}
             </div>
@@ -1281,32 +1465,22 @@
       saveOnline({ manual: true });
     });
 
-    document.querySelector('#copyProcessLink').addEventListener('click', async () => {
+    elements.copyProcessLink.addEventListener('click', async () => {
       if (!processId) {
         await saveOnline({ copyLink: true });
         return;
       }
 
-      const link = getShareUrl(processId);
-
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(link);
-          showToast('Link do processo copiado.');
-        } else {
-          throw new Error('clipboard unavailable');
-        }
-      } catch (error) {
-        window.prompt('Copie o link do processo:', link);
-        showToast('Copie o link manualmente.');
-      }
+      await copyProcessLinkToClipboard(processId);
     });
 
     if (processId) {
       startRealtimeSync(processId);
+      render({ online: false });
+    } else {
+      setSyncStatus(firebaseEnabled ? "local" : "error", firebaseEnabled ? "Somente local" : "Firebase nao configurado");
+      render();
     }
-
-    render();
   </script>
 </body>
 
