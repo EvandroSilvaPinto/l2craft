@@ -638,7 +638,8 @@
         <div class="actions">
           <button class="primary" type="button" id="copyMissing">Copiar faltas</button>
           <button class="primary" type="button" id="saveOnline">Salvar online</button>
-          <button class="secondary" type="button" id="copyProcessLink">Copiar link do processo</button>
+          <button class="secondary" type="button" id="copyProcessLink">Copiar link editavel</button>
+          <button class="secondary" type="button" id="copyViewProcessLink">Copiar link sem edicao</button>
           <button class="secondary" type="button" id="resetInventory">Zerar inventario</button>
           <button class="secondary" type="button" id="fillRequired">Marcar tudo pronto</button>
           <div class="sync-status local" id="syncStatusBox" role="status" aria-live="polite">
@@ -707,9 +708,10 @@
     const db = firebaseEnabled ? getFirestore(firebaseApp) : null;
     const urlParams = new URLSearchParams(window.location.search);
     let processId = urlParams.get("id");
+    const readOnlyMode = urlParams.get("view") === "1" || urlParams.get("readonly") === "1";
     let isLoadingRemote = false;
     let hasLoadedRemote = !processId;
-    let editingLocked = Boolean(processId);
+    let editingLocked = Boolean(processId) || readOnlyMode;
     let saveOnlineTimer;
     let unsubscribeRealtime = null;
     let realtimeProcessId = null;
@@ -891,6 +893,7 @@
       toast: document.querySelector("#toast"),
       saveOnline: document.querySelector("#saveOnline"),
       copyProcessLink: document.querySelector("#copyProcessLink"),
+      copyViewProcessLink: document.querySelector("#copyViewProcessLink"),
       resetInventory: document.querySelector("#resetInventory"),
       fillRequired: document.querySelector("#fillRequired")
     };
@@ -913,9 +916,21 @@
       };
     }
 
-    function getShareUrl(id = processId) {
+    function getShareUrl(id = processId, { readOnly = false } = {}) {
       const url = new URL(window.location.href);
       url.searchParams.set("id", id);
+      url.searchParams.delete("run");
+      url.searchParams.delete("test");
+      url.searchParams.delete("verify");
+      url.searchParams.delete("diagnostic");
+
+      if (readOnly) {
+        url.searchParams.set("view", "1");
+      } else {
+        url.searchParams.delete("view");
+        url.searchParams.delete("readonly");
+      }
+
       return url.toString();
     }
 
@@ -952,13 +967,14 @@
       throw new Error(getFirestoreErrorMessage(payload));
     }
 
-    async function copyProcessLinkToClipboard(id = processId) {
-      const link = getShareUrl(id);
+    async function copyProcessLinkToClipboard(id = processId, { readOnly = false } = {}) {
+      const link = getShareUrl(id, { readOnly });
+      const copiedMessage = readOnly ? "Link sem edicao copiado." : "Link editavel copiado.";
 
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(link);
-          showToast("Link do processo copiado.");
+          showToast(copiedMessage);
         } else {
           throw new Error("clipboard unavailable");
         }
@@ -982,15 +998,26 @@
       elements.syncStatusText.textContent = message;
     }
 
+    function applyReadOnlyModeChrome() {
+      if (!readOnlyMode) return;
+
+      elements.saveOnline.hidden = true;
+      elements.copyProcessLink.hidden = true;
+      elements.resetInventory.hidden = true;
+      elements.fillRequired.hidden = true;
+      elements.copyViewProcessLink.textContent = "Copiar link desta visualizacao";
+    }
+
     function setEditingLocked(locked) {
-      editingLocked = locked;
-      elements.craftQty.disabled = locked;
-      elements.saveOnline.disabled = locked;
-      elements.resetInventory.disabled = locked;
-      elements.fillRequired.disabled = locked;
+      editingLocked = locked || readOnlyMode;
+      elements.craftQty.disabled = editingLocked;
+      elements.saveOnline.disabled = editingLocked;
+      elements.copyProcessLink.disabled = readOnlyMode;
+      elements.resetInventory.disabled = editingLocked;
+      elements.fillRequired.disabled = editingLocked;
 
       document.querySelectorAll("[data-preset], [data-material], [data-toggle-subitems]").forEach((control) => {
-        control.disabled = locked;
+        control.disabled = editingLocked;
       });
     }
 
@@ -1020,7 +1047,12 @@
       realtimeProcessId = id;
       hasLoadedRemote = !waitForRemote;
       setEditingLocked(waitForRemote);
-      setSyncStatus(waitForRemote ? "connecting" : "saving", waitForRemote ? "Conectando ao processo" : "Salvando online");
+      setSyncStatus(
+        waitForRemote ? "connecting" : "saving",
+        waitForRemote
+          ? (readOnlyMode ? "Abrindo visualizacao" : "Conectando ao processo")
+          : "Salvando online"
+      );
 
       ensureFirestoreReady(id).catch((error) => {
         if (hasLoadedRemote) return;
@@ -1039,7 +1071,7 @@
           setEditingLocked(false);
 
           if (!snapshot.exists()) {
-            setSyncStatus("local", "Link sem processo salvo");
+            setSyncStatus("local", readOnlyMode ? "Visualizacao sem processo salvo" : "Link sem processo salvo");
             showToast("Processo online ainda nao existe. Clique em Salvar online para criar.");
             return;
           }
@@ -1051,7 +1083,9 @@
           isLoadingRemote = false;
           setSyncStatus(
             snapshot.metadata.hasPendingWrites ? "saving" : "online",
-            snapshot.metadata.hasPendingWrites ? "Salvando online" : "Online em tempo real"
+            snapshot.metadata.hasPendingWrites
+              ? "Salvando online"
+              : (readOnlyMode ? "Visualizacao em tempo real" : "Online em tempo real")
           );
         },
         (error) => {
@@ -1067,7 +1101,12 @@
       return true;
     }
 
-    async function saveOnline({ copyLink = false, manual = false } = {}) {
+    async function saveOnline({ copyLink = false, copyReadOnlyLink = false, manual = false } = {}) {
+      if (readOnlyMode) {
+        showToast("Este link e somente para visualizacao.");
+        return;
+      }
+
       if (!firebaseEnabled) {
         showToast("Configure o firebaseConfig no codigo antes de salvar online.");
         setSyncStatus("error", "Firebase nao configurado");
@@ -1094,8 +1133,8 @@
         await setDoc(doc(db, "craftProcesses", processId), getPublicState(), { merge: true });
         startRealtimeSync(processId, { waitForRemote: false });
 
-        if (copyLink) {
-          await copyProcessLinkToClipboard(processId);
+        if (copyLink || copyReadOnlyLink) {
+          await copyProcessLinkToClipboard(processId, { readOnly: copyReadOnlyLink });
         } else if (manual) {
           showToast("Processo salvo online.");
         }
@@ -1108,6 +1147,7 @@
     }
 
     function scheduleOnlineSave() {
+      if (readOnlyMode) return;
       if (!firebaseEnabled || !processId || isLoadingRemote || !hasLoadedRemote) return;
       window.clearTimeout(saveOnlineTimer);
       setSyncStatus("saving", "Salvando online");
@@ -1115,6 +1155,7 @@
     }
 
     function flushOnlineSave() {
+      if (readOnlyMode) return;
       if (!firebaseEnabled || !processId || isLoadingRemote || !hasLoadedRemote) return;
       window.clearTimeout(saveOnlineTimer);
       saveOnline();
@@ -1415,17 +1456,20 @@
     }
 
     elements.craftQty.addEventListener("input", (event) => {
+      if (readOnlyMode) return;
       state.quantity = Math.max(toSafeNumber(event.target.value, 1), 1);
       render();
     });
 
     elements.craftQty.addEventListener("change", (event) => {
+      if (readOnlyMode) return;
       state.quantity = Math.max(toSafeNumber(event.target.value, 1), 1);
       render();
       flushOnlineSave();
     });
 
     elements.materials.addEventListener("input", (event) => {
+      if (readOnlyMode) return;
       if (!event.target.matches("[data-material]")) return;
       const materialName = event.target.dataset.material;
       state.inventory[materialName] = toSafeNumber(event.target.value);
@@ -1434,6 +1478,7 @@
     });
 
     elements.materials.addEventListener("click", (event) => {
+      if (readOnlyMode) return;
       const toggle = event.target.closest("[data-toggle-subitems]");
       if (!toggle) return;
 
@@ -1444,6 +1489,7 @@
 
     document.querySelectorAll("[data-preset]").forEach((button) => {
       button.addEventListener("click", () => {
+        if (readOnlyMode) return;
         state.quantity = Number(button.dataset.preset);
         render();
         flushOnlineSave();
@@ -1451,12 +1497,14 @@
     });
 
     document.querySelector("#resetInventory").addEventListener("click", () => {
+      if (readOnlyMode) return;
       state.inventory = {};
       render();
       showToast("Inventario zerado.");
     });
 
     document.querySelector("#fillRequired").addEventListener("click", () => {
+      if (readOnlyMode) return;
       recipe.materials.forEach((material) => {
         state.inventory[material.name] = getTotal(material);
       });
@@ -1478,7 +1526,12 @@
       saveOnline({ manual: true });
     });
 
-    elements.copyProcessLink.addEventListener('click', async () => {
+    elements.copyProcessLink.addEventListener("click", async () => {
+      if (readOnlyMode) {
+        showToast("Este link e somente para visualizacao.");
+        return;
+      }
+
       if (!processId) {
         await saveOnline({ copyLink: true });
         return;
@@ -1486,6 +1539,17 @@
 
       await copyProcessLinkToClipboard(processId);
     });
+
+    elements.copyViewProcessLink.addEventListener("click", async () => {
+      if (!processId) {
+        await saveOnline({ copyReadOnlyLink: true });
+        return;
+      }
+
+      await copyProcessLinkToClipboard(processId, { readOnly: true });
+    });
+
+    applyReadOnlyModeChrome();
 
     if (processId) {
       startRealtimeSync(processId);
