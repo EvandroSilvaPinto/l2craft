@@ -1114,6 +1114,12 @@
       saveOnlineTimer = window.setTimeout(() => saveOnline(), 650);
     }
 
+    function flushOnlineSave() {
+      if (!firebaseEnabled || !processId || isLoadingRemote || !hasLoadedRemote) return;
+      window.clearTimeout(saveOnlineTimer);
+      saveOnline();
+    }
+
     function toSafeNumber(value, fallback = 0) {
       const number = Number(value);
       if (!Number.isFinite(number) || number < 0) return fallback;
@@ -1413,6 +1419,12 @@
       render();
     });
 
+    elements.craftQty.addEventListener("change", (event) => {
+      state.quantity = Math.max(toSafeNumber(event.target.value, 1), 1);
+      render();
+      flushOnlineSave();
+    });
+
     elements.materials.addEventListener("input", (event) => {
       if (!event.target.matches("[data-material]")) return;
       const materialName = event.target.dataset.material;
@@ -1434,6 +1446,7 @@
       button.addEventListener("click", () => {
         state.quantity = Number(button.dataset.preset);
         render();
+        flushOnlineSave();
       });
     });
 
