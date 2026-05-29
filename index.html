@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora de Craft - Arcana Mace</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d0b10;
+      --surface: #17131d;
+      --surface-2: #211a2a;
+      --line: #332a3e;
+      --text: #f6efe4;
+      --muted: #b8aebd;
+      --gold: #d8ac55;
+      --gold-2: #f3d28a;
+      --teal: #68d6c5;
+      --green: #78d98a;
+      --red: #ff746f;
+      --input: #0f0d14;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(216, 172, 85, 0.16), transparent 32rem),
+        radial-gradient(circle at 88% 12%, rgba(104, 214, 197, 0.12), transparent 26rem),
+        var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 2px;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 22px;
+      align-items: center;
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(23, 19, 29, 0.96), rgba(33, 26, 42, 0.92));
+      box-shadow: var(--shadow);
+    }
+
+    .identity {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .item-icon {
+      width: 76px;
+      height: 76px;
+      flex: 0 0 auto;
+      image-rendering: pixelated;
+      border: 1px solid rgba(216, 172, 85, 0.42);
+      border-radius: 8px;
+      background: #050407;
+      padding: 10px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      color: var(--gold-2);
+      font-size: 32px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .source {
+      color: var(--teal);
+      text-decoration: none;
+    }
+
+    .source:hover {
+      text-decoration: underline;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 12px;
+      align-items: end;
+      min-width: 360px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--input);
+      color: var(--text);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .primary {
+      background: var(--gold);
+      color: #171009;
+      font-weight: 800;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--line);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .secondary.active {
+      border-color: var(--gold);
+      color: var(--gold-2);
+    }
+
+    .craft-progress {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(23, 19, 29, 0.86);
+    }
+
+    .craft-progress-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      color: var(--gold-2);
+      font-weight: 900;
+    }
+
+    .craft-progress-meta {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .craft-progress .progress {
+      height: 13px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .stat {
+      min-height: 92px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(23, 19, 29, 0.86);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--text);
+      font-size: 26px;
+      line-height: 1.1;
+    }
+
+    .stat .accent {
+      color: var(--teal);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .materials {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(23, 19, 29, 0.9);
+    }
+
+    .item-ref {
+      display: flex;
+      min-width: 0;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .item-ref img {
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      image-rendering: pixelated;
+      border-radius: 6px;
+      background: #050407;
+      padding: 4px;
+    }
+
+    .item-ref span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .number {
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .missing {
+      color: var(--red);
+      font-weight: 900;
+    }
+
+    .ready {
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .progress {
+      height: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      background: rgba(15, 13, 20, 0.92);
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--red), var(--gold), var(--green));
+      transition: width 160ms ease;
+    }
+
+    .side-panel {
+      display: grid;
+      gap: 12px;
+    }
+
+    .actions,
+    .output {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(23, 19, 29, 0.9);
+      padding: 14px;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+    }
+
+    .output-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--gold-2);
+      font-weight: 900;
+    }
+
+    .output-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .output-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(51, 42, 62, 0.7);
+    }
+
+    .output-list li:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .plan-row {
+      display: grid;
+      grid-template-columns: minmax(240px, 1.45fr) minmax(86px, 0.42fr) minmax(104px, 0.46fr) minmax(96px, 0.46fr) 42px;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .plan-row:last-child {
+      border-bottom: 0;
+    }
+
+    .plan-row.header {
+      min-height: 46px;
+      color: var(--gold-2);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .plan-name {
+      min-width: 0;
+      padding-left: calc(var(--depth, 0) * 18px);
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .plan-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      min-height: 30px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .plan-action.craft {
+      border-color: rgba(104, 214, 197, 0.35);
+      color: var(--teal);
+    }
+
+    .plan-action.expanded {
+      border-color: rgba(216, 172, 85, 0.45);
+      color: var(--gold-2);
+    }
+
+    .toast {
+      min-height: 22px;
+      margin-top: 12px;
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        min-width: 0;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        width: min(100% - 20px, 1180px);
+        padding-top: 10px;
+      }
+
+      .hero {
+        padding: 18px;
+      }
+
+      .identity {
+        align-items: flex-start;
+      }
+
+      .item-icon {
+        width: 58px;
+        height: 58px;
+        padding: 8px;
+      }
+
+      h1 {
+        font-size: 25px;
+      }
+
+      .controls,
+      .quick-actions,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .craft-progress-header {
+        display: grid;
+        gap: 4px;
+      }
+
+      .craft-progress-meta {
+        text-align: left;
+      }
+
+      .plan-row,
+      .plan-row.header {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .plan-row.header {
+        display: none;
+      }
+
+      .plan-name {
+        grid-column: 1 / -1;
+      }
+
+      .plan-name {
+        padding-left: 0;
+      }
+
+      .cell {
+        display: grid;
+        gap: 4px;
+      }
+
+      .cell::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero" aria-labelledby="title">
+      <div class="identity">
+        <img class="item-icon" src="https://l2hub.info/s/icons-gf/weapon_arcana_mace_i00.png" alt="Arcana Mace" />
+        <div>
+          <h1 id="title">Calculadora de Craft - Arcana Mace</h1>
+          <p class="subtitle">
+            Receita 60% de Lineage 2 Interlude, com dados da pagina de craft do
+            <a class="source" href="https://l2hub.info/il/items/arcana_mace/craft" target="_blank" rel="noreferrer">L2Hub</a>.
+          </p>
+        </div>
+      </div>
+
+      <div class="controls" aria-label="Configuracoes de craft">
+        <div>
+          <label for="craftQty">Crafts</label>
+          <input id="craftQty" type="number" min="1" step="1" value="20" inputmode="numeric" />
+        </div>
+        <div>
+          <label>Atalhos</label>
+          <div class="quick-actions" role="group" aria-label="Quantidade rapida">
+            <button class="secondary" type="button" data-preset="1">1x</button>
+            <button class="secondary" type="button" data-preset="10">10x</button>
+            <button class="secondary active" type="button" data-preset="20">20x</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="craft-progress" aria-label="Progresso geral do craft">
+      <div class="craft-progress-header">
+        <span>Progresso geral com subcrafts</span>
+        <span class="craft-progress-meta">
+          <span id="overallProgressText">0%</span>
+          <span id="overallProgressUnits">0 / 0 materiais</span>
+        </span>
+      </div>
+      <div class="progress">
+        <div class="progress-fill" id="overallProgressBar" style="width: 0%"></div>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Resumo">
+      <div class="stat">
+        <span>Chance</span>
+        <strong>60%</strong>
+      </div>
+      <div class="stat">
+        <span>Sucesso esperado</span>
+        <strong class="accent" id="expectedSuccess">12.0</strong>
+      </div>
+      <div class="stat">
+        <span>MP total</span>
+        <strong id="mpTotal">4,500</strong>
+      </div>
+      <div class="stat">
+        <span>Materiais em falta</span>
+        <strong id="missingKinds">9</strong>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="materials" id="materials" aria-label="Materiais com subcrafts"></div>
+
+      <aside class="side-panel" aria-label="Acoes e faltas">
+        <div class="actions">
+          <button class="primary" type="button" id="copyMissing">Copiar faltas</button>
+          <button class="primary" type="button" id="saveOnline">Salvar online</button>
+          <button class="secondary" type="button" id="copyProcessLink">Copiar link do processo</button>
+          <button class="secondary" type="button" id="resetInventory">Zerar inventario</button>
+          <button class="secondary" type="button" id="fillRequired">Marcar tudo pronto</button>
+          <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="output">
+          <div class="output-title">
+            <span>Lista de faltas</span>
+            <span id="missingTotal">0</span>
+          </div>
+          <ul class="output-list" id="missingList"></ul>
+        </div>
+      </aside>
+    </section>
+
+    <footer>
+      Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2,440. A expectativa de sucesso e apenas media estatistica; cada tentativa continua independente. Para compartilhar o progresso, configure Firebase, clique em Salvar online e copie o link do processo.
+    </footer>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc,
+      serverTimestamp,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+    /*
+      1) Crie um projeto no Firebase.
+      2) Ative Firestore Database.
+      3) Em Configuracoes do projeto > Seus apps > Web, copie o firebaseConfig.
+      4) Substitua os valores abaixo.
+    */
+    const firebaseConfig = {
+      apiKey: "COLE_SUA_API_KEY_AQUI",
+      authDomain: "COLE_SEU_PROJECT_ID.firebaseapp.com",
+      projectId: "COLE_SEU_PROJECT_ID",
+      storageBucket: "COLE_SEU_PROJECT_ID.appspot.com",
+      messagingSenderId: "COLE_SEU_MESSAGING_SENDER_ID",
+      appId: "COLE_SEU_APP_ID"
+    };
+
+    const firebaseEnabled = !firebaseConfig.apiKey.includes("COLE_") && !firebaseConfig.projectId.includes("COLE_");
+    const firebaseApp = firebaseEnabled ? initializeApp(firebaseConfig) : null;
+    const db = firebaseEnabled ? getFirestore(firebaseApp) : null;
+    const urlParams = new URLSearchParams(window.location.search);
+    let processId = urlParams.get("id");
+    let isLoadingRemote = false;
+    let saveOnlineTimer;
+    let unsubscribeRealtime = null;
+    let realtimeProcessId = null;
+
+    const recipe = {
+      item: "Arcana Mace",
+      successRate: 0.6,
+      mpPerCraft: 225,
+      materials: [
+        {
+          name: "Recipe: Arcana Mace (60%)",
+          perCraft: 1,
+          icon: "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png"
+        },
+        {
+          name: "Arcana Mace Head",
+          perCraft: 17,
+          icon: "https://l2hub.info/s/icons-gf/etc_squares_gray_i00.png"
+        },
+        {
+          name: "Warsmith's Holder",
+          perCraft: 4,
+          icon: "https://l2hub.info/s/icons-gf/etc_blacksmiths_frame_i00.png"
+        },
+        {
+          name: "Mithril Alloy",
+          perCraft: 154,
+          icon: "https://l2hub.info/s/icons-gf/etc_lump_white_i00.png"
+        },
+        {
+          name: "Synthetic Cokes",
+          perCraft: 154,
+          icon: "https://l2hub.info/s/icons-gf/etc_synthetic_cokes_i00.png"
+        },
+        {
+          name: "Durable Metal Plate",
+          perCraft: 308,
+          icon: "https://l2hub.info/s/icons-gf/etc_squares_wood_i00.png"
+        },
+        {
+          name: "Enria",
+          perCraft: 77,
+          icon: "https://l2hub.info/s/icons-gf/etc_gem_red_i00.png"
+        },
+        {
+          name: "Crystal: S Grade",
+          perCraft: 211,
+          icon: "https://l2hub.info/s/icons-gf/etc_crystal_gold_i00.png"
+        },
+        {
+          name: "Gemstone S",
+          perCraft: 43,
+          icon: "https://l2hub.info/s/icons-gf/etc_bead_silver_i00.png"
+        }
+      ]
+    };
+
+    const itemIcons = {
+      "Recipe: Arcana Mace (60%)": "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png",
+      "Arcana Mace Head": "https://l2hub.info/s/icons-gf/etc_squares_gray_i00.png",
+      "Warsmith's Holder": "https://l2hub.info/s/icons-gf/etc_blacksmiths_frame_i00.png",
+      "Mithril Alloy": "https://l2hub.info/s/icons-gf/etc_lump_white_i00.png",
+      "Synthetic Cokes": "https://l2hub.info/s/icons-gf/etc_synthetic_cokes_i00.png",
+      "Durable Metal Plate": "https://l2hub.info/s/icons-gf/etc_squares_wood_i00.png",
+      "Enria": "https://l2hub.info/s/icons-gf/etc_gem_red_i00.png",
+      "Crystal: S Grade": "https://l2hub.info/s/icons-gf/etc_crystal_gold_i00.png",
+      "Gemstone S": "https://l2hub.info/s/icons-gf/etc_bead_silver_i00.png",
+      "Maestro Holder": "https://l2hub.info/s/icons-gf/etc_lump_yellow_i00.png",
+      "Mold Glue": "https://l2hub.info/s/icons-gf/etc_reagent_red_i00.png",
+      "Thread": "https://l2hub.info/s/icons-gf/etc_skein_white_i00.png",
+      "Varnish of Purity": "https://l2hub.info/s/icons-gf/etc_potion_clear_i00.png",
+      "Mold Lubricant": "https://l2hub.info/s/icons-gf/etc_reagent_gold_i00.png",
+      "Mold Hardener": "https://l2hub.info/s/icons-gf/etc_reagent_blue_i00.png",
+      "Steel": "https://l2hub.info/s/icons-gf/etc_lump_black_i00.png",
+      "Mithril Ore": "https://l2hub.info/s/icons-gf/etc_mithril_ore_i00.png",
+      "Cokes": "https://l2hub.info/s/icons-gf/etc_oil_pot_black_i00.png",
+      "Oriharukon Ore": "https://l2hub.info/s/icons-gf/etc_oriharukon_ore_i00.png",
+      "Metallic Thread": "https://l2hub.info/s/icons-gf/etc_skein_gray_i00.png",
+      "Coarse Bone Powder": "https://l2hub.info/s/icons-gf/etc_powder_white_i00.png",
+      "Varnish": "https://l2hub.info/s/icons-gf/etc_pouch_yellow_i00.png",
+      "Stone of Purity": "https://l2hub.info/s/icons-gf/etc_crystal_ball_white_i00.png",
+      "Iron Ore": "https://l2hub.info/s/icons-gf/etc_lump_gray_i00.png",
+      "Coal": "https://l2hub.info/s/icons-gf/etc_coal_i00.png",
+      "Charcoal": "https://l2hub.info/s/icons-gf/etc_charcoal_i00.png",
+      "Animal Bone": "https://l2hub.info/s/icons-gf/etc_piece_bone_white_i00.png"
+    };
+
+    const craftRecipes = {
+      "Warsmith's Holder": {
+        resultQty: 1,
+        materials: [
+          { name: "Maestro Holder", qty: 2 },
+          { name: "Mold Glue", qty: 10 },
+          { name: "Thread", qty: 20 }
+        ]
+      },
+      "Maestro Holder": {
+        resultQty: 1,
+        materials: [
+          { name: "Varnish of Purity", qty: 10 },
+          { name: "Mold Lubricant", qty: 10 },
+          { name: "Mold Hardener", qty: 10 }
+        ]
+      },
+      "Mithril Alloy": {
+        resultQty: 1,
+        materials: [
+          { name: "Varnish of Purity", qty: 1 },
+          { name: "Steel", qty: 2 },
+          { name: "Mithril Ore", qty: 1 }
+        ]
+      },
+      "Synthetic Cokes": {
+        resultQty: 1,
+        materials: [
+          { name: "Cokes", qty: 3 },
+          { name: "Oriharukon Ore", qty: 1 }
+        ]
+      },
+      "Durable Metal Plate": {
+        resultQty: 1,
+        materials: [
+          { name: "Metallic Thread", qty: 5 },
+          { name: "Mithril Ore", qty: 5 }
+        ]
+      },
+      "Varnish of Purity": {
+        resultQty: 1,
+        materials: [
+          { name: "Coarse Bone Powder", qty: 3 },
+          { name: "Varnish", qty: 3 },
+          { name: "Stone of Purity", qty: 1 }
+        ]
+      },
+      "Steel": {
+        resultQty: 1,
+        materials: [
+          { name: "Varnish", qty: 5 },
+          { name: "Iron Ore", qty: 5 }
+        ]
+      },
+      "Cokes": {
+        resultQty: 1,
+        materials: [
+          { name: "Coal", qty: 3 },
+          { name: "Charcoal", qty: 3 }
+        ]
+      },
+      "Coarse Bone Powder": {
+        resultQty: 1,
+        materials: [
+          { name: "Animal Bone", qty: 10 }
+        ]
+      },
+      "Metallic Thread": {
+        resultQty: 1,
+        materials: [
+          { name: "Thread", qty: 10 },
+          { name: "Iron Ore", qty: 5 }
+        ]
+      }
+    };
+
+    const stateKey = "arcana-mace-interlude-craft-calculator";
+    const formatter = new Intl.NumberFormat("en-US");
+    const elements = {
+      craftQty: document.querySelector("#craftQty"),
+      materials: document.querySelector("#materials"),
+      overallProgressBar: document.querySelector("#overallProgressBar"),
+      overallProgressText: document.querySelector("#overallProgressText"),
+      overallProgressUnits: document.querySelector("#overallProgressUnits"),
+      expectedSuccess: document.querySelector("#expectedSuccess"),
+      mpTotal: document.querySelector("#mpTotal"),
+      missingKinds: document.querySelector("#missingKinds"),
+      missingTotal: document.querySelector("#missingTotal"),
+      missingList: document.querySelector("#missingList"),
+      toast: document.querySelector("#toast")
+    };
+
+    const defaultState = {
+      quantity: 20,
+      inventory: {},
+      expanded: {}
+    };
+
+    let state = loadLocalState();
+
+    function normalizeState(value) {
+      return {
+        ...defaultState,
+        ...(value || {}),
+        quantity: Math.max(toSafeNumber(value?.quantity, defaultState.quantity), 1),
+        inventory: value?.inventory || {},
+        expanded: value?.expanded || {}
+      };
+    }
+
+    function getShareUrl(id = processId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("id", id);
+      return url.toString();
+    }
+
+    function loadLocalState() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(stateKey));
+        return normalizeState(stored);
+      } catch {
+        return { ...defaultState };
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(stateKey, JSON.stringify(state));
+      scheduleOnlineSave();
+    }
+
+    function getPublicState() {
+      return {
+        quantity: state.quantity,
+        inventory: state.inventory,
+        expanded: state.expanded,
+        updatedAt: serverTimestamp()
+      };
+    }
+
+    function startRealtimeSync(id) {
+      if (!firebaseEnabled || !id) return false;
+      if (realtimeProcessId === id && unsubscribeRealtime) return true;
+
+      if (unsubscribeRealtime) {
+        unsubscribeRealtime();
+        unsubscribeRealtime = null;
+      }
+
+      realtimeProcessId = id;
+      unsubscribeRealtime = onSnapshot(
+        doc(db, "craftProcesses", id),
+        (snapshot) => {
+          if (!snapshot.exists()) {
+            showToast("Processo online ainda nao existe. Clique em Salvar online para criar.");
+            return;
+          }
+
+          isLoadingRemote = true;
+          state = normalizeState(snapshot.data());
+          localStorage.setItem(stateKey, JSON.stringify(state));
+          render();
+          isLoadingRemote = false;
+          showToast("Atualizado em tempo real.");
+        },
+        (error) => {
+          console.error(error);
+          isLoadingRemote = false;
+          showToast("Erro no tempo real. Confira Firebase, Firestore e regras.");
+        }
+      );
+
+      return true;
+    }
+
+    async function saveOnline({ copyLink = false, manual = false } = {}) {
+      if (!firebaseEnabled) {
+        showToast("Configure o firebaseConfig no codigo antes de salvar online.");
+        return;
+      }
+
+      try {
+        if (!processId) {
+          processId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          const url = new URL(window.location.href);
+          url.searchParams.set("id", processId);
+          window.history.replaceState({}, "", url);
+        }
+
+        await setDoc(doc(db, "craftProcesses", processId), getPublicState(), { merge: true });
+        startRealtimeSync(processId);
+
+        if (copyLink) {
+          await navigator.clipboard.writeText(getShareUrl(processId));
+          showToast("Processo salvo e link copiado.");
+        } else if (manual) {
+          showToast("Processo salvo online.");
+        }
+      } catch (error) {
+        console.error(error);
+        showToast("Erro ao salvar online. Verifique Firebase, Firestore e regras.");
+      }
+    }
+
+    function scheduleOnlineSave() {
+      if (!firebaseEnabled || !processId || isLoadingRemote) return;
+      window.clearTimeout(saveOnlineTimer);
+      saveOnlineTimer = window.setTimeout(() => saveOnline(), 650);
+    }
+
+    function toSafeNumber(value, fallback = 0) {
+      const number = Number(value);
+      if (!Number.isFinite(number) || number < 0) return fallback;
+      return Math.floor(number);
+    }
+
+    function formatNumber(value) {
+      return formatter.format(value);
+    }
+
+    function getItemIcon(name) {
+      return itemIcons[name] || "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png";
+    }
+
+    function getTotal(material) {
+      return material.perCraft * state.quantity;
+    }
+
+    function getHave(material) {
+      return toSafeNumber(state.inventory[material.name]);
+    }
+
+    function getMissing(material) {
+      return Math.max(getTotal(material) - getHave(material), 0);
+    }
+
+    function isExpanded(name) {
+      return Boolean(state.expanded[name]);
+    }
+
+    function getDisplayRows(plan) {
+      const rowByName = new Map(plan.rows.map((row) => [row.name, row]));
+      const rows = [];
+
+      function visit(name, depth) {
+        const row = rowByName.get(name);
+        if (!row || row.required <= 0) return;
+
+        rows.push({ ...row, depth });
+
+        const craft = craftRecipes[name];
+        if (!craft || row.craftQty <= 0 || !isExpanded(name)) return;
+
+        craft.materials.forEach((material) => {
+          visit(material.name, depth + 1);
+        });
+      }
+
+      recipe.materials.forEach((material) => {
+        visit(material.name, 0);
+      });
+
+      return rows;
+    }
+
+    function calculateExpandedPlan(inventory = state.inventory) {
+      const available = Object.fromEntries(
+        Object.entries(inventory).map(([name, value]) => [name, toSafeNumber(value)])
+      );
+      const rows = new Map();
+      const leafRows = new Map();
+      let subcraftCount = 0;
+
+      function ensureRow(name, depth) {
+        if (!rows.has(name)) {
+          rows.set(name, {
+            name,
+            required: 0,
+            used: 0,
+            missing: 0,
+            craftQty: 0,
+            depth,
+            craftable: Boolean(craftRecipes[name])
+          });
+        }
+
+        const row = rows.get(name);
+        row.depth = Math.min(row.depth, depth);
+        return row;
+      }
+
+      function addLeafNeed(name, quantity, depth) {
+        if (!leafRows.has(name)) {
+          leafRows.set(name, {
+            name,
+            missing: 0,
+            depth
+          });
+        }
+
+        const row = leafRows.get(name);
+        row.missing += quantity;
+        row.depth = Math.min(row.depth, depth);
+      }
+
+      function requestItem(name, quantity, depth) {
+        const row = ensureRow(name, depth);
+        row.required += quantity;
+
+        const availableQty = toSafeNumber(available[name]);
+        const used = Math.min(availableQty, quantity);
+        available[name] = availableQty - used;
+        row.used += used;
+
+        const missing = quantity - used;
+        row.missing += missing;
+        if (missing <= 0) return;
+
+        const craft = craftRecipes[name];
+        if (!craft) {
+          addLeafNeed(name, missing, depth);
+          return;
+        }
+
+        const craftQty = Math.ceil(missing / craft.resultQty);
+        row.craftQty += craftQty;
+        subcraftCount += craftQty;
+
+        craft.materials.forEach((material) => {
+          requestItem(material.name, material.qty * craftQty, depth + 1);
+        });
+      }
+
+      recipe.materials.forEach((material) => {
+        requestItem(material.name, material.perCraft * state.quantity, 0);
+      });
+
+      return {
+        rows: [...rows.values()],
+        leafRows: [...leafRows.values()],
+        subcraftCount
+      };
+    }
+
+    function getOverallProgress() {
+      const baseline = calculateExpandedPlan({});
+      const current = calculateExpandedPlan();
+      const required = baseline.leafRows.reduce((sum, row) => sum + row.missing, 0);
+      const missing = current.leafRows.reduce((sum, row) => sum + row.missing, 0);
+      const have = Math.max(required - missing, 0);
+
+      return {
+        have,
+        required,
+        percent: required === 0 ? 0 : Math.min(Math.round((have / required) * 100), 100)
+      };
+    }
+
+    function renderOverallProgress() {
+      const progress = getOverallProgress();
+      elements.overallProgressBar.style.width = `${progress.percent}%`;
+      elements.overallProgressText.textContent = `${progress.percent}%`;
+      elements.overallProgressUnits.textContent = `${formatNumber(progress.have)} / ${formatNumber(progress.required)} materiais`;
+    }
+
+    function render() {
+      state.quantity = Math.max(toSafeNumber(state.quantity, 20), 1);
+      elements.craftQty.value = state.quantity;
+      elements.expectedSuccess.textContent = (state.quantity * recipe.successRate).toFixed(1);
+      elements.mpTotal.textContent = formatNumber(state.quantity * recipe.mpPerCraft);
+
+      document.querySelectorAll("[data-preset]").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.preset) === state.quantity);
+      });
+
+      renderMaterials();
+      renderOverallProgress();
+      renderMissing();
+      saveState();
+    }
+
+    function renderMaterials() {
+      const plan = calculateExpandedPlan();
+      const header = `
+        <div class="plan-row header">
+          <span>Material</span>
+          <span>Necessario</span>
+          <span>Tenho</span>
+          <span>Falta</span>
+          <span></span>
+        </div>
+      `;
+
+      const rows = getDisplayRows(plan)
+        .filter((row) => row.required > 0)
+        .map((row) => {
+          const have = getHave({ name: row.name });
+          const missing = Math.max(row.missing, 0);
+          const progress = row.required === 0 ? 0 : Math.min(Math.round((row.used / row.required) * 100), 100);
+          const canExpand = row.craftQty > 0;
+          const expanded = isExpanded(row.name);
+
+          return `
+          <div class="plan-row">
+            <div class="cell plan-name" data-label="Material" style="--depth: ${row.depth}">
+              <span class="item-ref">
+                <img src="${getItemIcon(row.name)}" alt="" />
+                <span>${row.name}</span>
+              </span>
+            </div>
+            <div class="cell number" data-label="Necessario">${formatNumber(row.required)}</div>
+            <div class="cell" data-label="Tenho">
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                value="${have}"
+                aria-label="Tenho ${row.name}"
+                data-material="${row.name}"
+              />
+            </div>
+            <div class="cell ${missing === 0 ? "ready" : "missing"}" data-label="Falta">
+              ${missing === 0 ? "OK" : formatNumber(missing)}
+              <div class="progress" aria-label="Progresso de ${row.name}">
+                <div class="progress-fill" style="width: ${progress}%"></div>
+              </div>
+            </div>
+            <div class="cell" data-label="Acao">
+              ${canExpand ? `
+                <button
+                  class="plan-action craft ${expanded ? "expanded" : ""}"
+                  type="button"
+                  data-toggle-subitems="${row.name}"
+                  aria-label="${expanded ? "Recolher" : "Expandir"} subitens de ${row.name}. Craftar ${formatNumber(row.craftQty)}."
+                  title="Craftar ${formatNumber(row.craftQty)}"
+                >${expanded ? "-" : "+"}</button>
+              ` : ""}
+            </div>
+          </div>
+        `;
+        }).join("");
+
+      elements.materials.innerHTML = header + rows;
+    }
+
+    function renderMissing() {
+      const missingItems = calculateExpandedPlan().leafRows
+        .filter((material) => material.missing > 0);
+
+      elements.missingKinds.textContent = missingItems.length;
+      elements.missingTotal.textContent = formatNumber(
+        missingItems.reduce((sum, material) => sum + material.missing, 0)
+      );
+
+      elements.missingList.innerHTML = missingItems.length
+        ? missingItems.map((material) => `
+          <li>
+            <span class="item-ref">
+              <img src="${getItemIcon(material.name)}" alt="" />
+              <span>${material.name}</span>
+            </span>
+            <strong>${formatNumber(material.missing)}</strong>
+          </li>
+        `).join("")
+        : "<li><span>Tudo pronto</span><strong>OK</strong></li>";
+    }
+
+    function showToast(message) {
+      elements.toast.textContent = message;
+      window.clearTimeout(showToast.timeout);
+      showToast.timeout = window.setTimeout(() => {
+        elements.toast.textContent = "";
+      }, 2200);
+    }
+
+    function getMissingText() {
+      const lines = calculateExpandedPlan().leafRows
+        .filter((material) => material.missing > 0)
+        .map((material) => `${material.name}: ${material.missing}`);
+
+      if (!lines.length) return "Arcana Mace: todos os materiais estao prontos.";
+      return [`Arcana Mace - faltas com subcrafts para ${state.quantity} crafts:`, ...lines].join("\n");
+    }
+
+    function focusMaterialInput(name) {
+      const input = [...elements.materials.querySelectorAll("[data-material]")]
+        .find((field) => field.dataset.material === name);
+
+      if (!input) return;
+      input.focus({ preventScroll: true });
+
+      try {
+        input.setSelectionRange(input.value.length, input.value.length);
+      } catch {
+        // Number inputs do not expose selection ranges in every browser.
+      }
+    }
+
+    elements.craftQty.addEventListener("input", (event) => {
+      state.quantity = Math.max(toSafeNumber(event.target.value, 1), 1);
+      render();
+    });
+
+    elements.materials.addEventListener("input", (event) => {
+      if (!event.target.matches("[data-material]")) return;
+      const materialName = event.target.dataset.material;
+      state.inventory[materialName] = toSafeNumber(event.target.value);
+      render();
+      focusMaterialInput(materialName);
+    });
+
+    elements.materials.addEventListener("click", (event) => {
+      const toggle = event.target.closest("[data-toggle-subitems]");
+      if (!toggle) return;
+
+      const materialName = toggle.dataset.toggleSubitems;
+      state.expanded[materialName] = !state.expanded[materialName];
+      render();
+    });
+
+    document.querySelectorAll("[data-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.quantity = Number(button.dataset.preset);
+        render();
+      });
+    });
+
+    document.querySelector("#resetInventory").addEventListener("click", () => {
+      state.inventory = {};
+      render();
+      showToast("Inventario zerado.");
+    });
+
+    document.querySelector("#fillRequired").addEventListener("click", () => {
+      recipe.materials.forEach((material) => {
+        state.inventory[material.name] = getTotal(material);
+      });
+      render();
+      showToast("Materiais marcados como prontos.");
+    });
+
+    document.querySelector("#copyMissing").addEventListener("click", async () => {
+      const text = getMissingText();
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("Lista copiada.");
+      } catch {
+        showToast("Copie a lista manualmente na lateral.");
+      }
+    });
+
+    document.querySelector("#saveOnline").addEventListener("click", () => {
+      saveOnline({ manual: true });
+    });
+
+    document.querySelector("#copyProcessLink").addEventListener("click", async () => {
+      if (!processId) {
+        await saveOnline({ copyLink: true });
+        return;
+      }
+
+      await saveOnline();
+      try {
+        await navigator.clipboard.writeText(getShareUrl(processId));
+        showToast("Link do processo copiado.");
+      } catch {
+        showToast("Link do processo: " + getShareUrl(processId));
+      }
+    });
+
+    if (processId) {
+      startRealtimeSync(processId);
+    }
+
+    render();
+  </script>
+</body>
+</html>
