@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -426,6 +427,7 @@
     }
 
     @media (max-width: 980px) {
+
       .hero,
       .workspace {
         grid-template-columns: 1fr;
@@ -511,6 +513,7 @@
     }
   </style>
 </head>
+
 <body>
   <main class="app">
     <section class="hero" aria-labelledby="title">
@@ -520,7 +523,8 @@
           <h1 id="title">Calculadora de Craft - Arcana Mace</h1>
           <p class="subtitle">
             Receita 60% de Lineage 2 Interlude, com dados da pagina de craft do
-            <a class="source" href="https://l2hub.info/il/items/arcana_mace/craft" target="_blank" rel="noreferrer">L2Hub</a>.
+            <a class="source" href="https://l2hub.info/il/items/arcana_mace/craft" target="_blank"
+              rel="noreferrer">L2Hub</a>.
           </p>
         </div>
       </div>
@@ -597,7 +601,9 @@
     </section>
 
     <footer>
-      Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2,440. A expectativa de sucesso e apenas media estatistica; cada tentativa continua independente. Para compartilhar o progresso, configure Firebase, clique em Salvar online e copie o link do processo.
+      Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2,440. A expectativa de sucesso e apenas media estatistica;
+      cada tentativa continua independente. Para compartilhar o progresso, configure Firebase, clique em Salvar online e
+      copie o link do processo.
     </footer>
   </main>
 
@@ -1275,19 +1281,38 @@
       saveOnline({ manual: true });
     });
 
-    document.querySelector("#copyProcessLink").addEventListener("click", async () => {
+    document.querySelector('copyProcessLink').addEventListener('click', async () => {
       if (!processId) {
         await saveOnline({ copyLink: true });
         return;
       }
 
-      await saveOnline();
+      const link = getShareUrl(processId);
+
       try {
-        await navigator.clipboard.writeText(getShareUrl(processId));
-        showToast("Link do processo copiado.");
-      } catch {
-        showToast("Link do processo: " + getShareUrl(processId));
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(link);
+          showToast('Link do processo copiado.');
+        } else {
+          throw new Error('clipboard unavailable');
+        }
+      } catch (error) {
+        window.prompt('Copie o link do processo:', link);
+        showToast('Copie o link manualmente.');
       }
+    });
+    if (!processId) {
+      await saveOnline({ copyLink: true });
+      return;
+    }
+
+    await saveOnline();
+    try {
+      await navigator.clipboard.writeText(getShareUrl(processId));
+      showToast("Link do processo copiado.");
+    } catch {
+      showToast("Link do processo: " + getShareUrl(processId));
+    }
     });
 
     if (processId) {
@@ -1297,4 +1322,5 @@
     render();
   </script>
 </body>
+
 </html>
