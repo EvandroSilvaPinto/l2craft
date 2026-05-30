@@ -139,6 +139,18 @@
       min-width: 360px;
     }
 
+    .item-search {
+      grid-column: 1 / -1;
+    }
+
+    .search-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
     label {
       display: block;
       margin-bottom: 7px;
@@ -148,7 +160,8 @@
       text-transform: uppercase;
     }
 
-    input[type="number"] {
+    input[type="number"],
+    input[type="search"] {
       width: 100%;
       min-height: 42px;
       padding: 10px 12px;
@@ -572,18 +585,26 @@
   <main class="app">
     <section class="hero" aria-labelledby="title">
       <div class="identity">
-        <img class="item-icon" src="https://l2hub.info/s/icons-gf/weapon_arcana_mace_i00.png" alt="Arcana Mace" />
+        <img id="itemIcon" class="item-icon" src="https://l2hub.info/s/icons-gf/weapon_arcana_mace_i00.png"
+          alt="Arcana Mace" />
         <div>
           <h1 id="title">Calculadora de Craft - Arcana Mace</h1>
           <p class="subtitle">
-            Receita 60% de Lineage 2 Interlude, com dados da pagina de craft do
-            <a class="source" href="https://l2hub.info/il/items/arcana_mace/craft" target="_blank"
+            Receitas craftaveis de Lineage 2 Interlude, com dados da pagina de craft do
+            <a id="sourceLink" class="source" href="https://l2hub.info/il/items/arcana_mace/craft" target="_blank"
               rel="noreferrer">L2Hub</a>.
           </p>
         </div>
       </div>
 
       <div class="controls" aria-label="Configuracoes de craft">
+        <div class="item-search">
+          <label for="craftSearch">Item craftavel</label>
+          <input id="craftSearch" type="search" list="craftOptions" autocomplete="off"
+            placeholder="Pesquisar item craftavel..." />
+          <datalist id="craftOptions"></datalist>
+          <div class="search-meta" id="catalogMeta">Carregando lista de crafts...</div>
+        </div>
         <div>
           <label for="craftQty">Crafts</label>
           <input id="craftQty" type="number" min="1" step="1" value="20" inputmode="numeric" />
@@ -615,7 +636,7 @@
     <section class="stats" aria-label="Resumo">
       <div class="stat">
         <span>Chance</span>
-        <strong>60%</strong>
+        <strong id="successRate">60%</strong>
       </div>
       <div class="stat">
         <span>Sucesso esperado</span>
@@ -715,10 +736,20 @@
     let saveOnlineTimer;
     let unsubscribeRealtime = null;
     let realtimeProcessId = null;
+    const selectedCraftStateKey = "__selectedCraftKey";
+    const defaultCraftKey = "6579:6899";
+    let craftCatalog = { targets: [], items: [] };
+    let catalogTargetsByKey = new Map();
+    let catalogItemsById = new Map();
+    let catalogLoaded = false;
 
-    const recipe = {
+    let recipe = {
+      key: defaultCraftKey,
+      itemId: 6579,
+      itemName: "arcana_mace",
       item: "Arcana Mace",
       successRate: 0.6,
+      successRateLabel: "60%",
       mpPerCraft: 225,
       materials: [
         {
@@ -769,7 +800,7 @@
       ]
     };
 
-    const itemIcons = {
+    let itemIcons = {
       "Recipe: Arcana Mace (60%)": "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png",
       "Arcana Mace Head": "https://l2hub.info/s/icons-gf/etc_squares_gray_i00.png",
       "Warsmith's Holder": "https://l2hub.info/s/icons-gf/etc_blacksmiths_frame_i00.png",
@@ -799,7 +830,7 @@
       "Animal Bone": "https://l2hub.info/s/icons-gf/etc_piece_bone_white_i00.png"
     };
 
-    const craftRecipes = {
+    let craftRecipes = {
       "Warsmith's Holder": {
         resultQty: 1,
         materials: [
@@ -878,11 +909,18 @@
     const stateKey = "arcana-mace-interlude-craft-calculator";
     const formatter = new Intl.NumberFormat("en-US");
     const elements = {
+      title: document.querySelector("#title"),
+      itemIcon: document.querySelector("#itemIcon"),
+      sourceLink: document.querySelector("#sourceLink"),
+      craftSearch: document.querySelector("#craftSearch"),
+      craftOptions: document.querySelector("#craftOptions"),
+      catalogMeta: document.querySelector("#catalogMeta"),
       craftQty: document.querySelector("#craftQty"),
       materials: document.querySelector("#materials"),
       overallProgressBar: document.querySelector("#overallProgressBar"),
       overallProgressText: document.querySelector("#overallProgressText"),
       overallProgressUnits: document.querySelector("#overallProgressUnits"),
+      successRate: document.querySelector("#successRate"),
       expectedSuccess: document.querySelector("#expectedSuccess"),
       mpTotal: document.querySelector("#mpTotal"),
       missingKinds: document.querySelector("#missingKinds"),
@@ -899,6 +937,7 @@
     };
 
     const defaultState = {
+      selectedTargetKey: defaultCraftKey,
       quantity: 20,
       inventory: {},
       expanded: {}
@@ -910,6 +949,12 @@
       return {
         ...defaultState,
         ...(value || {}),
+        selectedTargetKey: String(
+          value?.selectedTargetKey ||
+          value?.expanded?.[selectedCraftStateKey] ||
+          urlParams.get("craft") ||
+          defaultState.selectedTargetKey
+        ),
         quantity: Math.max(toSafeNumber(value?.quantity, defaultState.quantity), 1),
         inventory: value?.inventory || {},
         expanded: value?.expanded || {}
@@ -919,6 +964,7 @@
     function getShareUrl(id = processId, { readOnly = false } = {}) {
       const url = new URL(window.location.href);
       url.searchParams.set("id", id);
+      url.searchParams.set("craft", state.selectedTargetKey);
       url.searchParams.delete("run");
       url.searchParams.delete("test");
       url.searchParams.delete("verify");
@@ -984,6 +1030,165 @@
       }
     }
 
+    function getIconUrl(icon) {
+      if (!icon) return "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png";
+      if (icon.startsWith("http")) return icon;
+      return `https://l2hub.info/s/icons-gf/${icon}.png`;
+    }
+
+    function getTargetLabel(target) {
+      if (!target) return recipe.item;
+      const rate = target.rate == null ? "" : ` (${target.rate}%)`;
+      return `${target.item.name}${rate}`;
+    }
+
+    function getItemData(itemId) {
+      return catalogItemsById.get(Number(itemId)) || {
+        id: Number(itemId),
+        itemName: `item_${itemId}`,
+        name: `Item #${itemId}`,
+        icon: "etc_recipe_black_i00",
+        recipes: []
+      };
+    }
+
+    function getCurrentTarget() {
+      return catalogTargetsByKey.get(state.selectedTargetKey) ||
+        catalogTargetsByKey.get(defaultCraftKey) ||
+        craftCatalog.targets[0] ||
+        null;
+    }
+
+    function applyCatalogTarget() {
+      const target = getCurrentTarget();
+      if (!target) return;
+
+      state.selectedTargetKey = target.key || `${target.item.id}:${target.recipeId}`;
+      const nextIcons = {};
+      const nextCraftRecipes = {};
+
+      craftCatalog.items.forEach((item) => {
+        nextIcons[item.name] = getIconUrl(item.icon);
+
+        const craft = item.recipes?.[0];
+        if (!craft?.mats?.length) return;
+
+        nextCraftRecipes[item.name] = {
+          resultQty: Math.max(toSafeNumber(craft.prod?.[0]?.count, 1), 1),
+          materials: craft.mats.map((material) => {
+            const materialItem = getItemData(material.itemId);
+            return {
+              name: materialItem.name,
+              qty: material.count
+            };
+          })
+        };
+      });
+
+      itemIcons = nextIcons;
+      craftRecipes = nextCraftRecipes;
+      recipe = {
+        key: state.selectedTargetKey,
+        itemId: target.item.id,
+        itemName: target.item.itemName,
+        item: target.item.name,
+        successRate: (target.rate == null ? 100 : target.rate) / 100,
+        successRateLabel: target.rate == null ? "100%" : `${target.rate}%`,
+        mpPerCraft: target.key === defaultCraftKey ? 225 : null,
+        materials: target.recipe.mats.map((material) => {
+          const item = getItemData(material.itemId);
+          return {
+            name: item.name,
+            perCraft: material.count,
+            icon: getIconUrl(item.icon)
+          };
+        })
+      };
+    }
+
+    function renderCraftSearchOptions() {
+      if (!catalogLoaded) return;
+
+      elements.craftOptions.innerHTML = craftCatalog.targets
+        .map((target) => `<option value="${getTargetLabel(target)}"></option>`)
+        .join("");
+      elements.catalogMeta.textContent = `${formatNumber(craftCatalog.targets.length)} receitas craftaveis carregadas.`;
+    }
+
+    function syncSelectedCraftUi() {
+      const target = getCurrentTarget();
+      const itemIcon = getIconUrl(target?.item?.icon || "weapon_arcana_mace_i00");
+
+      elements.title.textContent = `Calculadora de Craft - ${recipe.item}`;
+      elements.itemIcon.src = itemIcon;
+      elements.itemIcon.alt = recipe.item;
+      elements.sourceLink.href = `https://l2hub.info/il/items/${recipe.itemName}/craft`;
+      elements.craftSearch.value = target ? getTargetLabel(target) : recipe.item;
+      document.title = `Calculadora de Craft - ${recipe.item}`;
+    }
+
+    function findCraftTargetFromSearch(value) {
+      const cleanValue = value.trim().toLowerCase();
+      if (!cleanValue) return null;
+
+      return craftCatalog.targets.find((target) => (
+        getTargetLabel(target).toLowerCase() === cleanValue ||
+        target.recipeName?.toLowerCase() === cleanValue
+      )) || craftCatalog.targets.find((target) => (
+        getTargetLabel(target).toLowerCase().includes(cleanValue) ||
+        target.item.itemName.toLowerCase().includes(cleanValue) ||
+        target.recipeName?.toLowerCase().includes(cleanValue)
+      )) || null;
+    }
+
+    function selectCraftTarget(target, { persist = true } = {}) {
+      if (!target || readOnlyMode) return;
+      const targetKey = target.key || `${target.item.id}:${target.recipeId}`;
+      if (state.selectedTargetKey === targetKey) return;
+
+      state.selectedTargetKey = targetKey;
+      state.expanded = {
+        [selectedCraftStateKey]: targetKey
+      };
+      const url = new URL(window.location.href);
+      url.searchParams.set("craft", targetKey);
+      window.history.replaceState({}, "", url);
+      applyCatalogTarget();
+      render({ persist });
+      flushOnlineSave();
+    }
+
+    async function loadCraftCatalog() {
+      try {
+        const response = await fetch("./data/interlude-crafts.json");
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+
+        const data = await response.json();
+        craftCatalog = {
+          targets: data.targets || [],
+          items: data.items || []
+        };
+        catalogTargetsByKey = new Map(craftCatalog.targets.map((target) => [
+          target.key || `${target.item.id}:${target.recipeId}`,
+          target
+        ]));
+        catalogItemsById = new Map(craftCatalog.items.map((item) => [item.id, item]));
+        catalogLoaded = craftCatalog.targets.length > 0;
+
+        if (!catalogTargetsByKey.has(state.selectedTargetKey)) {
+          const byItemId = craftCatalog.targets.find((target) => String(target.item.id) === state.selectedTargetKey);
+          state.selectedTargetKey = byItemId?.key || defaultCraftKey;
+        }
+
+        renderCraftSearchOptions();
+        applyCatalogTarget();
+        render({ online: false });
+      } catch (error) {
+        console.error(error);
+        elements.catalogMeta.textContent = "Nao foi possivel carregar a lista completa; usando Arcana Mace local.";
+      }
+    }
+
     function loadLocalState() {
       try {
         const stored = JSON.parse(localStorage.getItem(stateKey));
@@ -1010,6 +1215,7 @@
 
     function setEditingLocked(locked) {
       editingLocked = locked || readOnlyMode;
+      elements.craftSearch.disabled = editingLocked || !catalogLoaded;
       elements.craftQty.disabled = editingLocked;
       elements.saveOnline.disabled = editingLocked;
       elements.copyProcessLink.disabled = readOnlyMode;
@@ -1027,10 +1233,15 @@
     }
 
     function getPublicState() {
+      const expanded = {
+        ...state.expanded,
+        [selectedCraftStateKey]: state.selectedTargetKey
+      };
+
       return {
         quantity: state.quantity,
         inventory: state.inventory,
-        expanded: state.expanded,
+        expanded,
         updatedAt: serverTimestamp()
       };
     }
@@ -1123,6 +1334,7 @@
           processId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
           const url = new URL(window.location.href);
           url.searchParams.set("id", processId);
+          url.searchParams.set("craft", state.selectedTargetKey);
           window.history.replaceState({}, "", url);
           hasLoadedRemote = true;
         }
@@ -1317,11 +1529,14 @@
     }
 
     function render({ persist = true, online = true } = {}) {
+      applyCatalogTarget();
       state.quantity = Math.max(toSafeNumber(state.quantity, 20), 1);
+      syncSelectedCraftUi();
       elements.craftQty.value = state.quantity;
       elements.craftQty.disabled = editingLocked;
+      elements.successRate.textContent = recipe.successRateLabel;
       elements.expectedSuccess.textContent = (state.quantity * recipe.successRate).toFixed(1);
-      elements.mpTotal.textContent = formatNumber(state.quantity * recipe.mpPerCraft);
+      elements.mpTotal.textContent = recipe.mpPerCraft ? formatNumber(state.quantity * recipe.mpPerCraft) : "N/A";
 
       document.querySelectorAll("[data-preset]").forEach((button) => {
         button.classList.toggle("active", Number(button.dataset.preset) === state.quantity);
@@ -1437,8 +1652,8 @@
         .filter((material) => material.missing > 0)
         .map((material) => `${material.name}: ${material.missing}`);
 
-      if (!lines.length) return "Arcana Mace: todos os materiais estao prontos.";
-      return [`Arcana Mace - faltas com subcrafts para ${state.quantity} crafts:`, ...lines].join("\n");
+      if (!lines.length) return `${recipe.item}: todos os materiais estao prontos.`;
+      return [`${recipe.item} - faltas com subcrafts para ${state.quantity} crafts:`, ...lines].join("\n");
     }
 
     function focusMaterialInput(name) {
@@ -1454,6 +1669,30 @@
         // Number inputs do not expose selection ranges in every browser.
       }
     }
+
+    elements.craftSearch.addEventListener("change", (event) => {
+      const target = findCraftTargetFromSearch(event.target.value);
+      if (!target) {
+        syncSelectedCraftUi();
+        showToast("Item craftavel nao encontrado.");
+        return;
+      }
+
+      selectCraftTarget(target);
+    });
+
+    elements.craftSearch.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      const target = findCraftTargetFromSearch(event.currentTarget.value);
+
+      if (!target) {
+        showToast("Item craftavel nao encontrado.");
+        return;
+      }
+
+      selectCraftTarget(target);
+    });
 
     elements.craftQty.addEventListener("input", (event) => {
       if (readOnlyMode) return;
@@ -1550,6 +1789,7 @@
     });
 
     applyReadOnlyModeChrome();
+    loadCraftCatalog();
 
     if (processId) {
       startRealtimeSync(processId);
