@@ -5,6 +5,8 @@ const BASE_URL = "https://l2hub.info";
 const ITEMS_URL = `${BASE_URL}/il/items`;
 const OUT_DIR = path.join(__dirname, "..", "data");
 const OUT_FILE = path.join(OUT_DIR, "interlude-crafts.json");
+const OUT_SCRIPT_FILE = path.join(OUT_DIR, "interlude-crafts.js");
+const CATALOG_GLOBAL = "__L2CRAFT_INTERLUDE_CATALOG__";
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -175,8 +177,12 @@ async function main() {
     items: [...itemById.values()].sort((a, b) => a.id - b.id)
   };
 
-  await fs.writeFile(OUT_FILE, `${JSON.stringify(payload, null, 2)}\n`);
+  const prettyJson = JSON.stringify(payload, null, 2);
+
+  await fs.writeFile(OUT_FILE, `${prettyJson}\n`);
+  await fs.writeFile(OUT_SCRIPT_FILE, `window.${CATALOG_GLOBAL} = ${prettyJson};\n`);
   process.stdout.write(`saved ${OUT_FILE}: ${payload.targets.length} craft targets, ${payload.items.length} items\n`);
+  process.stdout.write(`saved ${OUT_SCRIPT_FILE}: browser-loadable craft catalog\n`);
 }
 
 main().catch((error) => {

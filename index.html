@@ -687,6 +687,7 @@
     </footer>
   </main>
 
+  <script src="./data/interlude-crafts.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
     import {
@@ -742,6 +743,7 @@
     let catalogTargetsByKey = new Map();
     let catalogItemsById = new Map();
     let catalogLoaded = false;
+    let catalogLoadFailed = false;
 
     let recipe = {
       key: defaultCraftKey,
@@ -1128,6 +1130,7 @@
     }
 
     function findCraftTargetFromSearch(value) {
+      if (!catalogLoaded) return null;
       const cleanValue = value.trim().toLowerCase();
       if (!cleanValue) return null;
 
@@ -1160,10 +1163,15 @@
 
     async function loadCraftCatalog() {
       try {
-        const response = await fetch("./data/interlude-crafts.json");
-        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        catalogLoadFailed = false;
+        let data = window.__L2CRAFT_INTERLUDE_CATALOG__;
 
-        const data = await response.json();
+        if (!data) {
+          const response = await fetch("./data/interlude-crafts.json");
+          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+          data = await response.json();
+        }
+
         craftCatalog = {
           targets: data.targets || [],
           items: data.items || []
@@ -1185,8 +1193,16 @@
         render({ online: false });
       } catch (error) {
         console.error(error);
+        catalogLoadFailed = true;
         elements.catalogMeta.textContent = "Nao foi possivel carregar a lista completa; usando Arcana Mace local.";
+        setEditingLocked(editingLocked);
       }
+    }
+
+    function showCatalogUnavailableToast() {
+      showToast(catalogLoadFailed
+        ? "Nao foi possivel carregar a lista completa."
+        : "A lista de crafts ainda esta carregando.");
     }
 
     function loadLocalState() {
@@ -1215,7 +1231,8 @@
 
     function setEditingLocked(locked) {
       editingLocked = locked || readOnlyMode;
-      elements.craftSearch.disabled = editingLocked || !catalogLoaded;
+      elements.craftSearch.disabled = editingLocked;
+      elements.craftSearch.setAttribute("aria-busy", catalogLoaded ? "false" : "true");
       elements.craftQty.disabled = editingLocked;
       elements.saveOnline.disabled = editingLocked;
       elements.copyProcessLink.disabled = readOnlyMode;
@@ -1671,6 +1688,12 @@
     }
 
     elements.craftSearch.addEventListener("change", (event) => {
+      if (!catalogLoaded) {
+        syncSelectedCraftUi();
+        showCatalogUnavailableToast();
+        return;
+      }
+
       const target = findCraftTargetFromSearch(event.target.value);
       if (!target) {
         syncSelectedCraftUi();
@@ -1684,6 +1707,12 @@
     elements.craftSearch.addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
       event.preventDefault();
+
+      if (!catalogLoaded) {
+        showCatalogUnavailableToast();
+        return;
+      }
+
       const target = findCraftTargetFromSearch(event.currentTarget.value);
 
       if (!target) {
