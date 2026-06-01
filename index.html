@@ -2247,12 +2247,9 @@
     }
 
     function getMissingText() {
-      const requiredByName = new Map(
-        calculateExpandedPlan({}).leafRows.map((material) => [material.name, material.missing])
-      );
       const lines = calculateExpandedPlan().leafRows
         .filter((material) => material.missing > 0)
-        .map((material) => `${material.name}: ${requiredByName.get(material.name) || material.missing} / ${material.missing}`);
+        .map((material) => `${material.name}: ${formatNumber(material.missing)}`);
 
       if (!lines.length) return t("missingTextReady", { item: recipe.item });
       return [t("missingTextHeader", { item: recipe.item, qty: state.quantity }), ...lines].join("\n");
