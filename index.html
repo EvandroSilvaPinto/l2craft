@@ -227,7 +227,7 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
       margin: 18px 0;
     }
@@ -423,7 +423,7 @@
 
     .plan-row {
       display: grid;
-      grid-template-columns: minmax(240px, 1.45fr) minmax(86px, 0.42fr) minmax(104px, 0.46fr) minmax(96px, 0.46fr) 42px;
+      grid-template-columns: minmax(240px, 1.45fr) minmax(86px, 0.42fr) minmax(104px, 0.46fr) minmax(96px, 0.46fr);
       gap: 10px;
       align-items: center;
       padding: 12px 14px;
@@ -449,33 +449,27 @@
       overflow-wrap: anywhere;
     }
 
-    .plan-action {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 30px;
-      min-width: 30px;
-      height: 30px;
-      min-height: 30px;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--muted);
-      font-size: 18px;
-      font-weight: 900;
-      line-height: 1;
-      white-space: nowrap;
+    .plan-row.subitem-row {
+      background: rgba(104, 214, 197, 0.08);
     }
 
-    .plan-action.craft {
-      border-color: rgba(104, 214, 197, 0.35);
+    .plan-name.has-subitems {
+      cursor: pointer;
+    }
+
+    .plan-name.has-subitems .item-ref span {
+      color: var(--gold-2);
+    }
+
+    .plan-name.has-subitems:hover .item-ref span,
+    .plan-name.has-subitems:focus-visible .item-ref span {
       color: var(--teal);
     }
 
-    .plan-action.expanded {
-      border-color: rgba(216, 172, 85, 0.45);
-      color: var(--gold-2);
+    .plan-name.has-subitems:focus-visible {
+      border-radius: 8px;
+      outline: 2px solid var(--teal);
+      outline-offset: 4px;
     }
 
     .toast {
@@ -641,10 +635,6 @@
       <div class="stat">
         <span>Sucesso esperado</span>
         <strong class="accent" id="expectedSuccess">12.0</strong>
-      </div>
-      <div class="stat">
-        <span>MP total</span>
-        <strong id="mpTotal">4,500</strong>
       </div>
       <div class="stat">
         <span>Materiais em falta</span>
@@ -924,7 +914,6 @@
       overallProgressUnits: document.querySelector("#overallProgressUnits"),
       successRate: document.querySelector("#successRate"),
       expectedSuccess: document.querySelector("#expectedSuccess"),
-      mpTotal: document.querySelector("#mpTotal"),
       missingKinds: document.querySelector("#missingKinds"),
       missingTotal: document.querySelector("#missingTotal"),
       missingList: document.querySelector("#missingList"),
@@ -1524,6 +1513,25 @@
       };
     }
 
+    function getWeightedMaterialsPercent(baselineRows, currentRows) {
+      const missingByName = new Map(currentRows.map((row) => [row.name, row.missing]));
+      let weightedProgress = 0;
+      let totalWeight = 0;
+
+      baselineRows.forEach((row) => {
+        const required = toSafeNumber(row.missing);
+        if (required <= 0) return;
+
+        const missing = Math.min(toSafeNumber(missingByName.get(row.name)), required);
+        const progress = Math.max(required - missing, 0) / required;
+        const weight = 1 / Math.sqrt(required);
+        weightedProgress += progress * weight;
+        totalWeight += weight;
+      });
+
+      return totalWeight === 0 ? 0 : Math.min(Math.round((weightedProgress / totalWeight) * 100), 100);
+    }
+
     function getOverallProgress() {
       const baseline = calculateExpandedPlan({});
       const current = calculateExpandedPlan();
@@ -1534,7 +1542,7 @@
       return {
         have,
         required,
-        percent: required === 0 ? 0 : Math.min(Math.round((have / required) * 100), 100)
+        percent: getWeightedMaterialsPercent(baseline.leafRows, current.leafRows)
       };
     }
 
@@ -1553,7 +1561,6 @@
       elements.craftQty.disabled = editingLocked;
       elements.successRate.textContent = recipe.successRateLabel;
       elements.expectedSuccess.textContent = (state.quantity * recipe.successRate).toFixed(1);
-      elements.mpTotal.textContent = recipe.mpPerCraft ? formatNumber(state.quantity * recipe.mpPerCraft) : "N/A";
 
       document.querySelectorAll("[data-preset]").forEach((button) => {
         button.classList.toggle("active", Number(button.dataset.preset) === state.quantity);
@@ -1575,7 +1582,6 @@
           <span>Necessario</span>
           <span>Tenho</span>
           <span>Falta</span>
-          <span></span>
         </div>
       `;
 
@@ -1589,8 +1595,20 @@
           const expanded = isExpanded(row.name);
 
           return `
-          <div class="plan-row">
-            <div class="cell plan-name" data-label="Material" style="--depth: ${row.depth}">
+          <div class="plan-row ${row.depth > 0 ? "subitem-row" : ""}">
+            <div
+              class="cell plan-name ${canExpand ? "has-subitems" : ""}"
+              data-label="Material"
+              style="--depth: ${row.depth}"
+              ${canExpand ? `
+                data-toggle-subitems="${row.name}"
+                role="button"
+                tabindex="${editingLocked ? "-1" : "0"}"
+                aria-expanded="${expanded ? "true" : "false"}"
+                aria-label="${expanded ? "Recolher" : "Expandir"} subitens de ${row.name}. Craftar ${formatNumber(row.craftQty)}."
+                title="${expanded ? "Recolher" : "Expandir"} subitens"
+              ` : ""}
+            >
               <span class="item-ref">
                 <img src="${getItemIcon(row.name)}" alt="" />
                 <span>${row.name}</span>
@@ -1614,18 +1632,6 @@
               <div class="progress" aria-label="Progresso de ${row.name}">
                 <div class="progress-fill" style="width: ${progress}%"></div>
               </div>
-            </div>
-            <div class="cell" data-label="Acao">
-              ${canExpand ? `
-                <button
-                  class="plan-action craft ${expanded ? "expanded" : ""}"
-                  type="button"
-                  data-toggle-subitems="${row.name}"
-                  aria-label="${expanded ? "Recolher" : "Expandir"} subitens de ${row.name}. Craftar ${formatNumber(row.craftQty)}."
-                  title="Craftar ${formatNumber(row.craftQty)}"
-                  ${editingLocked ? "disabled" : ""}
-                >${expanded ? "-" : "+"}</button>
-              ` : ""}
             </div>
           </div>
         `;
@@ -1745,14 +1751,28 @@
       focusMaterialInput(materialName);
     });
 
+    function toggleSubitems(materialName) {
+      state.expanded[materialName] = !state.expanded[materialName];
+      render();
+    }
+
     elements.materials.addEventListener("click", (event) => {
-      if (readOnlyMode) return;
+      if (readOnlyMode || editingLocked) return;
       const toggle = event.target.closest("[data-toggle-subitems]");
       if (!toggle) return;
 
-      const materialName = toggle.dataset.toggleSubitems;
-      state.expanded[materialName] = !state.expanded[materialName];
-      render();
+      toggleSubitems(toggle.dataset.toggleSubitems);
+    });
+
+    elements.materials.addEventListener("keydown", (event) => {
+      if (readOnlyMode || editingLocked) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+
+      const toggle = event.target.closest("[data-toggle-subitems]");
+      if (!toggle) return;
+
+      event.preventDefault();
+      toggleSubitems(toggle.dataset.toggleSubitems);
     });
 
     document.querySelectorAll("[data-preset]").forEach((button) => {
