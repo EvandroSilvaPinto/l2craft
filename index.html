@@ -1024,6 +1024,9 @@
         fang: "Fang",
         missingTextReady: "{item}: todos os materiais estao prontos.",
         missingTextHeader: "{item} - faltas com subcrafts para {qty} crafts:",
+        missingFangAlternativeHeader: "Alternativa com Fang of Stakato:",
+        missingFangAlternativeLine: "{item}: {missing} | Fang of Stakato: {fang}",
+        missingFangAlternativeTotal: "Total Fang of Stakato: {fang}",
         itemNotFound: "Item craftavel nao encontrado.",
         inventoryReset: "Inventario zerado.",
         materialsMarkedReady: "Materiais marcados como prontos.",
@@ -1104,6 +1107,9 @@
         fang: "Fang",
         missingTextReady: "{item}: all materials are ready.",
         missingTextHeader: "{item} - missing with subcrafts for {qty} crafts:",
+        missingFangAlternativeHeader: "Fang of Stakato alternative:",
+        missingFangAlternativeLine: "{item}: {missing} | Fang of Stakato: {fang}",
+        missingFangAlternativeTotal: "Total Fang of Stakato: {fang}",
         itemNotFound: "Craftable item not found.",
         inventoryReset: "Inventory reset.",
         materialsMarkedReady: "Materials marked as ready.",
@@ -1184,6 +1190,9 @@
         fang: "Fang",
         missingTextReady: "{item}: все материалы готовы.",
         missingTextHeader: "{item} - нехватка с подкрафтами для {qty} крафтов:",
+        missingFangAlternativeHeader: "Альтернатива через Fang of Stakato:",
+        missingFangAlternativeLine: "{item}: {missing} | Fang of Stakato: {fang}",
+        missingFangAlternativeTotal: "Всего Fang of Stakato: {fang}",
         itemNotFound: "Предмет для крафта не найден.",
         inventoryReset: "Инвентарь обнулен.",
         materialsMarkedReady: "Материалы отмечены как готовые.",
@@ -2252,6 +2261,22 @@
         .map((material) => `${material.name}: ${formatNumber(material.missing)}`);
 
       if (!lines.length) return t("missingTextReady", { item: recipe.item });
+
+      const fangEntries = getFangExchangeNeeds();
+      if (fangEntries.length) {
+        const totalFang = fangEntries.reduce((sum, entry) => sum + entry.totalFang, 0);
+        lines.push(
+          "",
+          t("missingFangAlternativeHeader"),
+          ...fangEntries.map((entry) => t("missingFangAlternativeLine", {
+            item: entry.name,
+            missing: formatNumber(entry.missing),
+            fang: formatNumber(entry.totalFang)
+          })),
+          t("missingFangAlternativeTotal", { fang: formatNumber(totalFang) })
+        );
+      }
+
       return [t("missingTextHeader", { item: recipe.item, qty: state.quantity }), ...lines].join("\n");
     }
 
