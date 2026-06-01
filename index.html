@@ -423,7 +423,7 @@
 
     .plan-row {
       display: grid;
-      grid-template-columns: minmax(240px, 1.45fr) minmax(86px, 0.42fr) minmax(104px, 0.46fr) minmax(96px, 0.46fr);
+      grid-template-columns: minmax(240px, 1.45fr) minmax(104px, 0.46fr) minmax(96px, 0.46fr);
       gap: 10px;
       align-items: center;
       padding: 12px 14px;
@@ -629,16 +629,16 @@
 
     <section class="stats" aria-label="Resumo">
       <div class="stat">
+        <span>Processo geral</span>
+        <strong class="accent" id="overallProgressCard">0%</strong>
+      </div>
+      <div class="stat">
         <span>Chance</span>
         <strong id="successRate">60%</strong>
       </div>
       <div class="stat">
         <span>Sucesso esperado</span>
         <strong class="accent" id="expectedSuccess">12.0</strong>
-      </div>
-      <div class="stat">
-        <span>Materiais em falta</span>
-        <strong id="missingKinds">9</strong>
       </div>
     </section>
 
@@ -658,6 +658,11 @@
             <span id="syncStatusText">Somente local</span>
           </div>
           <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        </div>
+
+        <div class="stat missing-summary">
+          <span>Materiais em falta</span>
+          <strong id="missingKinds">9</strong>
         </div>
 
         <div class="output">
@@ -911,6 +916,7 @@
       materials: document.querySelector("#materials"),
       overallProgressBar: document.querySelector("#overallProgressBar"),
       overallProgressText: document.querySelector("#overallProgressText"),
+      overallProgressCard: document.querySelector("#overallProgressCard"),
       overallProgressUnits: document.querySelector("#overallProgressUnits"),
       successRate: document.querySelector("#successRate"),
       expectedSuccess: document.querySelector("#expectedSuccess"),
@@ -1294,9 +1300,19 @@
           }
 
           isLoadingRemote = true;
+          const activeMaterialInput = getActiveMaterialInput();
+          const activeMaterialName = activeMaterialInput?.dataset.material;
+          const activeMaterialValue = activeMaterialInput ? toSafeNumber(activeMaterialInput.value) : 0;
           state = normalizeState(snapshot.data());
+          if (activeMaterialName && !readOnlyMode) {
+            state.inventory[activeMaterialName] = activeMaterialValue;
+          }
           localStorage.setItem(stateKey, JSON.stringify(state));
-          render({ persist: false });
+          if (activeMaterialName && !readOnlyMode) {
+            refreshInventoryViews({ persist: false });
+          } else {
+            render({ persist: false });
+          }
           isLoadingRemote = false;
           setSyncStatus(
             snapshot.metadata.hasPendingWrites ? "saving" : "online",
@@ -1513,23 +1529,65 @@
       };
     }
 
-    function getWeightedMaterialsPercent(baselineRows, currentRows) {
-      const missingByName = new Map(currentRows.map((row) => [row.name, row.missing]));
-      let weightedProgress = 0;
-      let totalWeight = 0;
+    function getHierarchicalMaterialsPercent(inventory = state.inventory) {
+      const available = Object.fromEntries(
+        Object.entries(inventory).map(([name, value]) => [name, toSafeNumber(value)])
+      );
+      const topMaterials = recipe.materials
+        .map((material) => ({
+          name: material.name,
+          quantity: material.perCraft * state.quantity
+        }))
+        .filter((material) => material.quantity > 0);
 
-      baselineRows.forEach((row) => {
-        const required = toSafeNumber(row.missing);
-        if (required <= 0) return;
+      if (!topMaterials.length) return 0;
 
-        const missing = Math.min(toSafeNumber(missingByName.get(row.name)), required);
-        const progress = Math.max(required - missing, 0) / required;
-        const weight = 1 / Math.sqrt(required);
-        weightedProgress += progress * weight;
-        totalWeight += weight;
-      });
+      const topWeight = 1 / topMaterials.length;
+      const completedWeight = topMaterials.reduce(
+        (sum, material) => sum + getRequirementProgressWeight(material.name, material.quantity, topWeight, available),
+        0
+      );
 
-      return totalWeight === 0 ? 0 : Math.min(Math.round((weightedProgress / totalWeight) * 100), 100);
+      return Math.min(Math.round(completedWeight * 100), 100);
+    }
+
+    function getRequirementProgressWeight(name, quantity, weight, available, trail = new Set()) {
+      const required = toSafeNumber(quantity);
+      if (required <= 0 || weight <= 0) return 0;
+
+      const availableQty = toSafeNumber(available[name]);
+      const used = Math.min(availableQty, required);
+      available[name] = availableQty - used;
+
+      const missing = required - used;
+      let completedWeight = weight * (used / required);
+      if (missing <= 0) return completedWeight;
+
+      const craft = craftRecipes[name];
+      if (!craft || trail.has(name)) return completedWeight;
+
+      const resultQty = Math.max(toSafeNumber(craft.resultQty, 1), 1);
+      const craftQty = Math.ceil(missing / resultQty);
+      const subMaterials = craft.materials
+        .map((material) => ({
+          name: material.name,
+          quantity: material.qty * craftQty
+        }))
+        .filter((material) => material.quantity > 0);
+
+      if (!subMaterials.length) return completedWeight;
+
+      const nextTrail = new Set(trail);
+      nextTrail.add(name);
+      const missingWeight = weight * (missing / required);
+      const subWeight = missingWeight / subMaterials.length;
+
+      completedWeight += subMaterials.reduce(
+        (sum, material) => sum + getRequirementProgressWeight(material.name, material.quantity, subWeight, available, nextTrail),
+        0
+      );
+
+      return completedWeight;
     }
 
     function getOverallProgress() {
@@ -1542,7 +1600,7 @@
       return {
         have,
         required,
-        percent: getWeightedMaterialsPercent(baseline.leafRows, current.leafRows)
+        percent: getHierarchicalMaterialsPercent()
       };
     }
 
@@ -1550,6 +1608,7 @@
       const progress = getOverallProgress();
       elements.overallProgressBar.style.width = `${progress.percent}%`;
       elements.overallProgressText.textContent = `${progress.percent}%`;
+      elements.overallProgressCard.textContent = `${progress.percent}%`;
       elements.overallProgressUnits.textContent = `${formatNumber(progress.have)} / ${formatNumber(progress.required)} materiais`;
     }
 
@@ -1579,9 +1638,8 @@
       const header = `
         <div class="plan-row header">
           <span>Material</span>
-          <span>Necessario</span>
           <span>Tenho</span>
-          <span>Falta</span>
+          <span>Avanco %</span>
         </div>
       `;
 
@@ -1590,12 +1648,13 @@
         .map((row) => {
           const have = getHave({ name: row.name });
           const missing = Math.max(row.missing, 0);
-          const progress = row.required === 0 ? 0 : Math.min(Math.round((row.used / row.required) * 100), 100);
+          const missingPercent = row.required === 0 ? 0 : Math.min(Math.round((missing / row.required) * 100), 100);
+          const havePercent = Math.max(100 - missingPercent, 0);
           const canExpand = row.craftQty > 0;
           const expanded = isExpanded(row.name);
 
           return `
-          <div class="plan-row ${row.depth > 0 ? "subitem-row" : ""}">
+          <div class="plan-row ${row.depth > 0 ? "subitem-row" : ""}" data-plan-row="${row.name}">
             <div
               class="cell plan-name ${canExpand ? "has-subitems" : ""}"
               data-label="Material"
@@ -1614,7 +1673,6 @@
                 <span>${row.name}</span>
               </span>
             </div>
-            <div class="cell number" data-label="Necessario">${formatNumber(row.required)}</div>
             <div class="cell" data-label="Tenho">
               <input
                 type="number"
@@ -1627,10 +1685,10 @@
                 ${editingLocked ? "disabled" : ""}
               />
             </div>
-            <div class="cell ${missing === 0 ? "ready" : "missing"}" data-label="Falta">
-              ${missing === 0 ? "OK" : formatNumber(missing)}
+            <div class="cell progress-percent ${missing === 0 ? "ready" : "missing"}" data-label="Avanco %" data-progress-cell>
+              <span data-progress-value>${havePercent}%</span>
               <div class="progress" aria-label="Progresso de ${row.name}">
-                <div class="progress-fill" style="width: ${progress}%"></div>
+                <div class="progress-fill" data-progress-fill style="width: ${havePercent}%"></div>
               </div>
             </div>
           </div>
@@ -1641,6 +1699,9 @@
     }
 
     function renderMissing() {
+      const requiredByName = new Map(
+        calculateExpandedPlan({}).leafRows.map((material) => [material.name, material.missing])
+      );
       const missingItems = calculateExpandedPlan().leafRows
         .filter((material) => material.missing > 0);
 
@@ -1656,7 +1717,7 @@
               <img src="${getItemIcon(material.name)}" alt="" />
               <span>${material.name}</span>
             </span>
-            <strong>${formatNumber(material.missing)}</strong>
+            <strong>${formatNumber(requiredByName.get(material.name) || material.missing)} / ${formatNumber(material.missing)}</strong>
           </li>
         `).join("")
         : "<li><span>Tudo pronto</span><strong>OK</strong></li>";
@@ -1671,26 +1732,52 @@
     }
 
     function getMissingText() {
+      const requiredByName = new Map(
+        calculateExpandedPlan({}).leafRows.map((material) => [material.name, material.missing])
+      );
       const lines = calculateExpandedPlan().leafRows
         .filter((material) => material.missing > 0)
-        .map((material) => `${material.name}: ${material.missing}`);
+        .map((material) => `${material.name}: ${requiredByName.get(material.name) || material.missing} / ${material.missing}`);
 
       if (!lines.length) return `${recipe.item}: todos os materiais estao prontos.`;
       return [`${recipe.item} - faltas com subcrafts para ${state.quantity} crafts:`, ...lines].join("\n");
     }
 
-    function focusMaterialInput(name) {
-      const input = [...elements.materials.querySelectorAll("[data-material]")]
-        .find((field) => field.dataset.material === name);
+    function getActiveMaterialInput() {
+      const activeElement = document.activeElement;
+      if (!activeElement?.matches?.("[data-material]")) return null;
+      return activeElement;
+    }
 
-      if (!input) return;
-      input.focus({ preventScroll: true });
+    function refreshVisibleMaterialRows() {
+      const plan = calculateExpandedPlan();
+      const rowByName = new Map(getDisplayRows(plan).map((row) => [row.name, row]));
 
-      try {
-        input.setSelectionRange(input.value.length, input.value.length);
-      } catch {
-        // Number inputs do not expose selection ranges in every browser.
-      }
+      elements.materials.querySelectorAll("[data-plan-row]").forEach((rowElement) => {
+        const row = rowByName.get(rowElement.dataset.planRow);
+        if (!row) return;
+
+        const missing = Math.max(row.missing, 0);
+        const missingPercent = row.required === 0 ? 0 : Math.min(Math.round((missing / row.required) * 100), 100);
+        const havePercent = Math.max(100 - missingPercent, 0);
+        const progressCell = rowElement.querySelector("[data-progress-cell]");
+        const progressValue = rowElement.querySelector("[data-progress-value]");
+        const progressFill = rowElement.querySelector("[data-progress-fill]");
+
+        if (progressCell) {
+          progressCell.classList.toggle("ready", missing === 0);
+          progressCell.classList.toggle("missing", missing !== 0);
+        }
+        if (progressValue) progressValue.textContent = `${havePercent}%`;
+        if (progressFill) progressFill.style.width = `${havePercent}%`;
+      });
+    }
+
+    function refreshInventoryViews({ persist = true, online = false } = {}) {
+      refreshVisibleMaterialRows();
+      renderOverallProgress();
+      renderMissing();
+      if (persist) saveState({ online });
     }
 
     elements.craftSearch.addEventListener("change", (event) => {
@@ -1743,12 +1830,27 @@
     });
 
     elements.materials.addEventListener("input", (event) => {
-      if (readOnlyMode) return;
+      if (readOnlyMode || editingLocked) return;
       if (!event.target.matches("[data-material]")) return;
       const materialName = event.target.dataset.material;
       state.inventory[materialName] = toSafeNumber(event.target.value);
-      render();
-      focusMaterialInput(materialName);
+      refreshInventoryViews({ online: true });
+    });
+
+    elements.materials.addEventListener("change", (event) => {
+      if (readOnlyMode || editingLocked) return;
+      if (!event.target.matches("[data-material]")) return;
+      const materialName = event.target.dataset.material;
+      state.inventory[materialName] = toSafeNumber(event.target.value);
+      refreshInventoryViews({ online: true });
+      flushOnlineSave();
+    });
+
+    elements.materials.addEventListener("focusout", () => {
+      window.setTimeout(() => {
+        if (getActiveMaterialInput()) return;
+        render({ online: false });
+      }, 0);
     });
 
     function toggleSubitems(materialName) {
