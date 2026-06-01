@@ -4,26 +4,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0d0b10" />
+  <meta name="theme-color" content="#1a1c1d" />
   <title>Calculadora de Craft</title>
   <link rel="icon" type="image/x-icon" href="./assets/lineage-2.ico" />
   <link rel="shortcut icon" type="image/x-icon" href="./assets/lineage-2.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@100..900&display=swap" rel="stylesheet" />
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0d0b10;
-      --surface: #17131d;
-      --surface-2: #211a2a;
-      --line: #332a3e;
-      --text: #f6efe4;
-      --muted: #b8aebd;
-      --gold: #d8ac55;
-      --gold-2: #f3d28a;
-      --teal: #68d6c5;
-      --green: #78d98a;
-      --red: #ff746f;
-      --input: #0f0d14;
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+      --page-bg: #100d0d;
+      --bg: #1a1c1d;
+      --surface: #1a1c1d;
+      --surface-2: #2f2929;
+      --surface-3: #100e0d;
+      --line: #70675f;
+      --text: #f4f1f0;
+      --muted: #ccc3bf;
+      --muted-2: #9a877e;
+      --gold: #fac459;
+      --gold-2: #ffce6d;
+      --gold-3: #ffbf40;
+      --brown: #3c342f;
+      --green: #21af69;
+      --red: #ea6944;
+      --input: #100e0d;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
     }
 
     * {
@@ -33,11 +40,10 @@
     body {
       min-height: 100vh;
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: "Onest", Arial, Helvetica, sans-serif;
       background:
-        radial-gradient(circle at 20% 0%, rgba(216, 172, 85, 0.16), transparent 32rem),
-        radial-gradient(circle at 88% 12%, rgba(104, 214, 197, 0.12), transparent 26rem),
-        var(--bg);
+        linear-gradient(180deg, #1a1c1d 0 54px, transparent 54px),
+        var(--page-bg);
       color: var(--text);
     }
 
@@ -49,9 +55,9 @@
     button {
       min-height: 42px;
       border: 1px solid transparent;
-      border-radius: 8px;
+      border-radius: 12px;
       cursor: pointer;
-      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
     }
 
     button:hover {
@@ -71,15 +77,15 @@
 
     button:focus-visible,
     input:focus-visible {
-      outline: 2px solid var(--teal);
+      outline: 2px solid var(--gold-2);
       outline-offset: 2px;
     }
 
     .app {
       position: relative;
-      width: min(1180px, calc(100% - 32px));
+      width: min(1220px, calc(100% - 48px));
       margin: 0 auto;
-      padding: 28px 0 40px;
+      padding: 24px 0 40px;
     }
 
     .language-switcher {
@@ -98,15 +104,15 @@
       min-height: 34px;
       padding: 0;
       border-color: var(--line);
-      background: rgba(23, 19, 29, 0.9);
+      background: var(--surface);
       font-size: 20px;
       line-height: 1;
     }
 
     .lang-button.active {
       border-color: var(--gold);
-      background: rgba(216, 172, 85, 0.16);
-      box-shadow: 0 0 0 2px rgba(216, 172, 85, 0.12);
+      background: var(--surface-2);
+      box-shadow: 0 0 0 2px rgba(250, 196, 89, 0.12);
     }
 
     .hero {
@@ -116,8 +122,8 @@
       align-items: center;
       padding: 28px;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: linear-gradient(135deg, rgba(23, 19, 29, 0.96), rgba(33, 26, 42, 0.92));
+      border-radius: 12px;
+      background: var(--surface);
       box-shadow: var(--shadow);
     }
 
@@ -133,15 +139,15 @@
       height: 76px;
       flex: 0 0 auto;
       image-rendering: pixelated;
-      border: 1px solid rgba(216, 172, 85, 0.42);
-      border-radius: 8px;
-      background: #050407;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-3);
       padding: 10px;
     }
 
     h1 {
       margin: 0 0 8px;
-      color: var(--gold-2);
+      color: var(--text);
       font-size: 32px;
       line-height: 1.08;
       letter-spacing: 0;
@@ -154,7 +160,7 @@
     }
 
     .source {
-      color: var(--teal);
+      color: var(--gold-2);
       text-decoration: none;
     }
 
@@ -187,7 +193,7 @@
       margin-bottom: 7px;
       color: var(--muted);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
     }
 
@@ -197,7 +203,7 @@
       min-height: 42px;
       padding: 10px 12px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 12px;
       background: var(--input);
       color: var(--text);
     }
@@ -210,20 +216,31 @@
 
     .primary {
       background: var(--gold);
-      color: #171009;
-      font-weight: 800;
+      color: var(--surface);
+      font-weight: 700;
+    }
+
+    .primary:hover {
+      background: var(--gold-2);
     }
 
     .secondary {
-      background: rgba(255, 255, 255, 0.04);
-      border-color: var(--line);
+      background: transparent;
+      border-color: var(--muted);
       color: var(--text);
-      font-weight: 700;
+      font-weight: 600;
+    }
+
+    .secondary:hover {
+      border-color: var(--brown);
+      background: var(--brown);
+      color: var(--gold-2);
     }
 
     .secondary.active {
       border-color: var(--gold);
-      color: var(--gold-2);
+      background: var(--gold);
+      color: var(--surface);
     }
 
     .craft-progress {
@@ -232,8 +249,8 @@
       margin-top: 14px;
       padding: 16px;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(23, 19, 29, 0.86);
+      border-radius: 12px;
+      background: var(--surface);
     }
 
     .craft-progress-header {
@@ -241,8 +258,8 @@
       justify-content: space-between;
       gap: 14px;
       align-items: center;
-      color: var(--gold-2);
-      font-weight: 900;
+      color: var(--text);
+      font-weight: 800;
     }
 
     .craft-progress-meta {
@@ -267,15 +284,15 @@
       min-height: 92px;
       padding: 16px;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(23, 19, 29, 0.86);
+      border-radius: 12px;
+      background: var(--surface);
     }
 
     .stat span {
       display: block;
       color: var(--muted);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       text-transform: uppercase;
     }
 
@@ -288,7 +305,7 @@
     }
 
     .stat .accent {
-      color: var(--teal);
+      color: var(--gold-2);
     }
 
     .workspace {
@@ -301,8 +318,8 @@
     .materials {
       overflow: hidden;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(23, 19, 29, 0.9);
+      border-radius: 12px;
+      background: var(--surface-2);
     }
 
     .empty-materials {
@@ -325,7 +342,7 @@
       flex: 0 0 auto;
       image-rendering: pixelated;
       border-radius: 6px;
-      background: #050407;
+      background: var(--surface-3);
       padding: 4px;
     }
 
@@ -345,7 +362,7 @@
     }
 
     .ready {
-      color: var(--green);
+      color: var(--gold);
       font-weight: 900;
     }
 
@@ -354,15 +371,19 @@
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 999px;
-      background: rgba(15, 13, 20, 0.92);
+      background: var(--surface-3);
     }
 
     .progress-fill {
       width: 0%;
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--red), var(--gold), var(--green));
+      background: var(--gold);
       transition: width 160ms ease;
+    }
+
+    [data-progress-value] {
+      color: var(--text);
     }
 
     .side-panel {
@@ -373,8 +394,8 @@
     .actions,
     .output {
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(23, 19, 29, 0.9);
+      border-radius: 12px;
+      background: var(--surface);
       padding: 14px;
     }
 
@@ -390,8 +411,8 @@
       min-height: 36px;
       padding: 8px 10px;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.035);
+      border-radius: 12px;
+      background: var(--surface-3);
       color: var(--muted);
       font-size: 13px;
       font-weight: 800;
@@ -403,27 +424,27 @@
       flex: 0 0 auto;
       border-radius: 999px;
       background: var(--muted);
-      box-shadow: 0 0 0 3px rgba(184, 174, 189, 0.1);
+      box-shadow: 0 0 0 3px rgba(204, 195, 191, 0.1);
     }
 
     .sync-status.online .sync-dot {
       background: var(--green);
-      box-shadow: 0 0 0 3px rgba(120, 217, 138, 0.14);
+      box-shadow: 0 0 0 3px rgba(33, 175, 105, 0.14);
     }
 
     .sync-status.saving .sync-dot {
       background: var(--gold);
-      box-shadow: 0 0 0 3px rgba(216, 172, 85, 0.14);
+      box-shadow: 0 0 0 3px rgba(250, 196, 89, 0.14);
     }
 
     .sync-status.connecting .sync-dot {
-      background: var(--teal);
-      box-shadow: 0 0 0 3px rgba(104, 214, 197, 0.14);
+      background: var(--gold-2);
+      box-shadow: 0 0 0 3px rgba(255, 206, 109, 0.14);
     }
 
     .sync-status.error .sync-dot {
       background: var(--red);
-      box-shadow: 0 0 0 3px rgba(255, 116, 111, 0.14);
+      box-shadow: 0 0 0 3px rgba(234, 105, 68, 0.14);
     }
 
     .output-title {
@@ -431,8 +452,8 @@
       justify-content: space-between;
       gap: 12px;
       margin-bottom: 10px;
-      color: var(--gold-2);
-      font-weight: 900;
+      color: var(--text);
+      font-weight: 800;
     }
 
     .output-list {
@@ -451,7 +472,7 @@
       gap: 14px;
       align-items: center;
       padding-bottom: 8px;
-      border-bottom: 1px solid rgba(51, 42, 62, 0.7);
+      border-bottom: 1px solid var(--line);
     }
 
     .output-list li:last-child {
@@ -487,6 +508,7 @@
       align-items: center;
       padding: 12px 14px;
       border-bottom: 1px solid var(--line);
+      background: var(--surface);
     }
 
     .plan-row:last-child {
@@ -497,8 +519,9 @@
       min-height: 46px;
       color: var(--gold-2);
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
+      background: var(--surface-2);
     }
 
     .plan-name {
@@ -509,8 +532,8 @@
     }
 
     .plan-row.subitem-row {
-      background: linear-gradient(90deg, rgba(104, 214, 197, 0.18), rgba(104, 214, 197, 0.07));
-      box-shadow: inset 4px 0 0 rgba(104, 214, 197, 0.9);
+      background: linear-gradient(90deg, rgba(255, 206, 109, 0.16), var(--surface));
+      box-shadow: inset 4px 0 0 var(--gold);
     }
 
     .plan-row.subitem-row .plan-name {
@@ -526,7 +549,7 @@
       width: 10px;
       height: 2px;
       border-radius: 999px;
-      background: var(--teal);
+      background: var(--gold);
       transform: translateY(-50%);
     }
 
@@ -540,21 +563,21 @@
 
     .plan-name.has-subitems:hover .item-ref span,
     .plan-name.has-subitems:focus-visible .item-ref span {
-      color: var(--teal);
+      color: var(--gold-3);
     }
 
     .plan-name.has-subitems:focus-visible {
       border-radius: 8px;
-      outline: 2px solid var(--teal);
+      outline: 2px solid var(--gold-2);
       outline-offset: 4px;
     }
 
     .toast {
       min-height: 22px;
       margin-top: 12px;
-      color: var(--teal);
+      color: var(--gold-2);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
     }
 
     footer {
