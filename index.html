@@ -4,7 +4,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0b10" />
   <title>Calculadora de Craft - Arcana Mace</title>
+  <link rel="icon" type="image/x-icon" href="./assets/lineage-2.ico" />
+  <link rel="shortcut icon" type="image/x-icon" href="./assets/lineage-2.ico" />
   <style>
     :root {
       color-scheme: dark;
@@ -73,9 +76,37 @@
     }
 
     .app {
+      position: relative;
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
       padding: 28px 0 40px;
+    }
+
+    .language-switcher {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .lang-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-color: var(--line);
+      background: rgba(23, 19, 29, 0.9);
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .lang-button.active {
+      border-color: var(--gold);
+      background: rgba(216, 172, 85, 0.16);
+      box-shadow: 0 0 0 2px rgba(216, 172, 85, 0.12);
     }
 
     .hero {
@@ -274,6 +305,13 @@
       background: rgba(23, 19, 29, 0.9);
     }
 
+    .empty-materials {
+      padding: 22px 16px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
     .item-ref {
       display: flex;
       min-width: 0;
@@ -421,6 +459,27 @@
       padding-bottom: 0;
     }
 
+    .exchange-rate {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .exchange-cost {
+      display: grid;
+      gap: 2px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .exchange-cost small {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
     .plan-row {
       display: grid;
       grid-template-columns: minmax(240px, 1.45fr) minmax(104px, 0.46fr) minmax(96px, 0.46fr);
@@ -450,7 +509,25 @@
     }
 
     .plan-row.subitem-row {
-      background: rgba(104, 214, 197, 0.08);
+      background: linear-gradient(90deg, rgba(104, 214, 197, 0.18), rgba(104, 214, 197, 0.07));
+      box-shadow: inset 4px 0 0 rgba(104, 214, 197, 0.9);
+    }
+
+    .plan-row.subitem-row .plan-name {
+      position: relative;
+      padding-left: calc((var(--depth, 0) * 18px) + 16px);
+    }
+
+    .plan-row.subitem-row .plan-name::before {
+      content: "";
+      position: absolute;
+      left: calc(var(--depth, 0) * 18px);
+      top: 50%;
+      width: 10px;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--teal);
+      transform: translateY(-50%);
     }
 
     .plan-name.has-subitems {
@@ -559,6 +636,14 @@
         padding-left: 0;
       }
 
+      .plan-row.subitem-row .plan-name {
+        padding-left: 22px;
+      }
+
+      .plan-row.subitem-row .plan-name::before {
+        left: 4px;
+      }
+
       .cell {
         display: grid;
         gap: 4px;
@@ -577,35 +662,41 @@
 
 <body>
   <main class="app">
+    <div class="language-switcher" data-i18n-aria-label="languageSwitcher" aria-label="Idioma">
+      <button class="lang-button" type="button" data-language="pt" aria-label="Português" title="Português">🇧🇷</button>
+      <button class="lang-button" type="button" data-language="en" aria-label="English" title="English">🇺🇸</button>
+      <button class="lang-button" type="button" data-language="ru" aria-label="Русский" title="Русский">🇷🇺</button>
+    </div>
+
     <section class="hero" aria-labelledby="title">
       <div class="identity">
-        <img id="itemIcon" class="item-icon" src="https://l2hub.info/s/icons-gf/weapon_arcana_mace_i00.png"
-          alt="Arcana Mace" />
+        <img id="itemIcon" class="item-icon" src="https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png"
+          alt="" />
         <div>
-          <h1 id="title">Calculadora de Craft - Arcana Mace</h1>
+          <h1 id="title">Calculadora de Craft</h1>
           <p class="subtitle">
-            Receitas craftaveis de Lineage 2 Interlude, com dados da pagina de craft do
+            <span id="subtitleText">Receitas craftaveis de Lineage 2 Interlude, com dados da pagina de craft do</span>
             <a id="sourceLink" class="source" href="https://l2hub.info/il/items/arcana_mace/craft" target="_blank"
               rel="noreferrer">L2Hub</a>.
           </p>
         </div>
       </div>
 
-      <div class="controls" aria-label="Configuracoes de craft">
+      <div class="controls" data-i18n-aria-label="craftSettings" aria-label="Configuracoes de craft">
         <div class="item-search">
-          <label for="craftSearch">Item craftavel</label>
+          <label for="craftSearch" data-i18n="craftableItem">Item craftavel</label>
           <input id="craftSearch" type="search" list="craftOptions" autocomplete="off"
-            placeholder="Pesquisar item craftavel..." />
+            placeholder="Pesquisar item craftavel..." data-i18n-placeholder="searchPlaceholder" />
           <datalist id="craftOptions"></datalist>
-          <div class="search-meta" id="catalogMeta">Carregando lista de crafts...</div>
+          <div class="search-meta" id="catalogMeta" data-i18n="catalogLoading">Carregando lista de crafts...</div>
         </div>
         <div>
-          <label for="craftQty">Crafts</label>
+          <label for="craftQty" data-i18n="crafts">Crafts</label>
           <input id="craftQty" type="number" min="1" step="1" value="20" inputmode="numeric" />
         </div>
         <div>
-          <label>Atalhos</label>
-          <div class="quick-actions" role="group" aria-label="Quantidade rapida">
+          <label data-i18n="shortcuts">Atalhos</label>
+          <div class="quick-actions" role="group" data-i18n-aria-label="quickQuantity" aria-label="Quantidade rapida">
             <button class="secondary" type="button" data-preset="1">1x</button>
             <button class="secondary" type="button" data-preset="10">10x</button>
             <button class="secondary active" type="button" data-preset="20">20x</button>
@@ -614,9 +705,9 @@
       </div>
     </section>
 
-    <section class="craft-progress" aria-label="Progresso geral do craft">
+    <section class="craft-progress" data-i18n-aria-label="overallCraftProgress" aria-label="Progresso geral do craft">
       <div class="craft-progress-header">
-        <span>Progresso geral com subcrafts</span>
+        <span data-i18n="overallWithSubcrafts">Progresso geral com subcrafts</span>
         <span class="craft-progress-meta">
           <span id="overallProgressText">0%</span>
           <span id="overallProgressUnits">0 / 0 materiais</span>
@@ -627,32 +718,32 @@
       </div>
     </section>
 
-    <section class="stats" aria-label="Resumo">
+    <section class="stats" data-i18n-aria-label="summary" aria-label="Resumo">
       <div class="stat">
-        <span>Processo geral</span>
+        <span data-i18n="overallProcess">Processo geral</span>
         <strong class="accent" id="overallProgressCard">0%</strong>
       </div>
       <div class="stat">
-        <span>Chance</span>
+        <span data-i18n="chance">Chance</span>
         <strong id="successRate">60%</strong>
       </div>
       <div class="stat">
-        <span>Sucesso esperado</span>
-        <strong class="accent" id="expectedSuccess">12.0</strong>
+        <span data-i18n="expectedSuccess">Sucesso esperado</span>
+        <strong class="accent" id="expectedSuccess">12,0</strong>
       </div>
     </section>
 
     <section class="workspace">
-      <div class="materials" id="materials" aria-label="Materiais com subcrafts"></div>
+      <div class="materials" id="materials" data-i18n-aria-label="materialsWithSubcrafts" aria-label="Materiais com subcrafts"></div>
 
-      <aside class="side-panel" aria-label="Acoes e faltas">
+      <aside class="side-panel" data-i18n-aria-label="actionsAndMissing" aria-label="Acoes e faltas">
         <div class="actions">
-          <button class="primary" type="button" id="copyMissing">Copiar faltas</button>
-          <button class="primary" type="button" id="saveOnline">Salvar online</button>
-          <button class="secondary" type="button" id="copyProcessLink">Copiar link editavel</button>
-          <button class="secondary" type="button" id="copyViewProcessLink">Copiar link sem edicao</button>
-          <button class="secondary" type="button" id="resetInventory">Zerar inventario</button>
-          <button class="secondary" type="button" id="fillRequired">Marcar tudo pronto</button>
+          <button class="primary" type="button" id="copyMissing" data-i18n="copyMissing">Copiar faltas</button>
+          <button class="primary" type="button" id="saveOnline" data-i18n="saveOnline">Salvar online</button>
+          <button class="secondary" type="button" id="copyProcessLink" data-i18n="copyEditableLink">Copiar link editavel</button>
+          <button class="secondary" type="button" id="copyViewProcessLink" data-i18n="copyViewLink">Copiar link sem edicao</button>
+          <button class="secondary" type="button" id="resetInventory" data-i18n="resetInventory">Zerar inventario</button>
+          <button class="secondary" type="button" id="fillRequired" data-i18n="markAllReady">Marcar tudo pronto</button>
           <div class="sync-status local" id="syncStatusBox" role="status" aria-live="polite">
             <span class="sync-dot" aria-hidden="true"></span>
             <span id="syncStatusText">Somente local</span>
@@ -661,24 +752,30 @@
         </div>
 
         <div class="stat missing-summary">
-          <span>Materiais em falta</span>
+          <span data-i18n="missingMaterials">Materiais em falta</span>
           <strong id="missingKinds">9</strong>
         </div>
 
         <div class="output">
           <div class="output-title">
-            <span>Lista de faltas</span>
+            <span data-i18n="missingList">Lista de faltas</span>
             <span id="missingTotal">0</span>
           </div>
           <ul class="output-list" id="missingList"></ul>
+        </div>
+
+        <div class="output">
+          <div class="output-title">
+            <span>Fang of Stakato</span>
+            <span id="fangTotal">0 Fang</span>
+          </div>
+          <ul class="output-list" id="fangList"></ul>
         </div>
       </aside>
     </section>
 
     <footer>
-      Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2,440. A expectativa de sucesso e apenas media estatistica;
-      cada tentativa continua independente. O processo salvo online sincroniza em tempo real pelo Firestore no GitHub
-      Pages.
+      <span data-i18n="footerText">Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2.440. A expectativa de sucesso e apenas media estatistica; cada tentativa continua independente. O calculo de Fang of Stakato e referente ao servidor Eternal do L2 Reborn.</span>
     </footer>
   </main>
 
@@ -740,62 +837,20 @@
     let catalogLoaded = false;
     let catalogLoadFailed = false;
 
-    let recipe = {
-      key: defaultCraftKey,
-      itemId: 6579,
-      itemName: "arcana_mace",
-      item: "Arcana Mace",
-      successRate: 0.6,
-      successRateLabel: "60%",
-      mpPerCraft: 225,
-      materials: [
-        {
-          name: "Recipe: Arcana Mace (60%)",
-          perCraft: 1,
-          icon: "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png"
-        },
-        {
-          name: "Arcana Mace Head",
-          perCraft: 17,
-          icon: "https://l2hub.info/s/icons-gf/etc_squares_gray_i00.png"
-        },
-        {
-          name: "Warsmith's Holder",
-          perCraft: 4,
-          icon: "https://l2hub.info/s/icons-gf/etc_blacksmiths_frame_i00.png"
-        },
-        {
-          name: "Mithril Alloy",
-          perCraft: 154,
-          icon: "https://l2hub.info/s/icons-gf/etc_lump_white_i00.png"
-        },
-        {
-          name: "Synthetic Cokes",
-          perCraft: 154,
-          icon: "https://l2hub.info/s/icons-gf/etc_synthetic_cokes_i00.png"
-        },
-        {
-          name: "Durable Metal Plate",
-          perCraft: 308,
-          icon: "https://l2hub.info/s/icons-gf/etc_squares_wood_i00.png"
-        },
-        {
-          name: "Enria",
-          perCraft: 77,
-          icon: "https://l2hub.info/s/icons-gf/etc_gem_red_i00.png"
-        },
-        {
-          name: "Crystal: S Grade",
-          perCraft: 211,
-          icon: "https://l2hub.info/s/icons-gf/etc_crystal_gold_i00.png"
-        },
-        {
-          name: "Gemstone S",
-          perCraft: 43,
-          icon: "https://l2hub.info/s/icons-gf/etc_bead_silver_i00.png"
-        }
-      ]
-    };
+    function createEmptyRecipe() {
+      return {
+        key: "",
+        itemId: null,
+        itemName: "",
+        item: "",
+        successRate: 0,
+        successRateLabel: "-",
+        mpPerCraft: null,
+        materials: []
+      };
+    }
+
+    let recipe = createEmptyRecipe();
 
     let itemIcons = {
       "Recipe: Arcana Mace (60%)": "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png",
@@ -807,6 +862,10 @@
       "Enria": "https://l2hub.info/s/icons-gf/etc_gem_red_i00.png",
       "Crystal: S Grade": "https://l2hub.info/s/icons-gf/etc_crystal_gold_i00.png",
       "Gemstone S": "https://l2hub.info/s/icons-gf/etc_bead_silver_i00.png",
+      "Asofe": "https://l2hub.info/s/icons-gf/etc_gem_blue_i00.png",
+      "Thons": "https://l2hub.info/s/icons-gf/etc_gem_clear_i00.png",
+      "Compound Braid": "https://l2hub.info/s/icons-gf/etc_compound_braid_i00.png",
+      "Oriharukon": "https://l2hub.info/s/icons-gf/etc_oriharukon_i00.png",
       "Maestro Holder": "https://l2hub.info/s/icons-gf/etc_lump_yellow_i00.png",
       "Mold Glue": "https://l2hub.info/s/icons-gf/etc_reagent_red_i00.png",
       "Thread": "https://l2hub.info/s/icons-gf/etc_skein_white_i00.png",
@@ -904,11 +963,278 @@
     };
 
     const stateKey = "arcana-mace-interlude-craft-calculator";
-    const formatter = new Intl.NumberFormat("en-US");
+    const formatter = new Intl.NumberFormat("pt-BR");
+    const decimalFormatter = new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    });
+    const languageStateKey = "l2craft-language";
+    const languageOptions = {
+      pt: { htmlLang: "pt-BR", label: "Português" },
+      en: { htmlLang: "en", label: "English" },
+      ru: { htmlLang: "ru", label: "Русский" }
+    };
+    const translations = {
+      pt: {
+        appTitle: "Calculadora de Craft",
+        pageTitle: "Calculadora de Craft - {item}",
+        subtitle: "Receitas craftaveis de Lineage 2 Interlude, com dados da pagina de craft do",
+        languageSwitcher: "Idioma",
+        craftSettings: "Configuracoes de craft",
+        craftableItem: "Item craftavel",
+        searchPlaceholder: "Pesquisar item craftavel...",
+        catalogLoading: "Carregando lista de crafts...",
+        craftsLoaded: "{count} receitas craftaveis carregadas.",
+        catalogLoadFailed: "Nao foi possivel carregar a lista completa; usando Arcana Mace local.",
+        catalogUnavailable: "Nao foi possivel carregar a lista completa.",
+        catalogStillLoading: "A lista de crafts ainda esta carregando.",
+        crafts: "Crafts",
+        shortcuts: "Atalhos",
+        quickQuantity: "Quantidade rapida",
+        overallCraftProgress: "Progresso geral do craft",
+        overallWithSubcrafts: "Progresso geral com subcrafts",
+        materialsUnit: "materiais",
+        summary: "Resumo",
+        overallProcess: "Processo geral",
+        chance: "Chance",
+        expectedSuccess: "Sucesso esperado",
+        materialsWithSubcrafts: "Materiais com subcrafts",
+        actionsAndMissing: "Acoes e faltas",
+        copyMissing: "Copiar faltas",
+        saveOnline: "Salvar online",
+        copyEditableLink: "Copiar link editavel",
+        copyViewLink: "Copiar link sem edicao",
+        copyThisViewLink: "Copiar link desta visualizacao",
+        resetInventory: "Zerar inventario",
+        markAllReady: "Marcar tudo pronto",
+        missingMaterials: "Materiais em falta",
+        missingList: "Lista de faltas",
+        material: "Material",
+        have: "Tenho",
+        progressPercent: "Avanco %",
+        expandSubitems: "Expandir",
+        collapseSubitems: "Recolher",
+        expandSubitemsOf: "{action} subitens de {item}. Craftar {qty}.",
+        subitemsTitle: "{action} subitens",
+        haveItem: "Tenho {item}",
+        progressOf: "Progresso de {item}",
+        selectCraftFirst: "Selecione um item craftavel para comecar.",
+        noBuyableMissing: "Nenhuma falta compravel",
+        allReady: "Tudo pronto",
+        fang: "Fang",
+        missingTextReady: "{item}: todos os materiais estao prontos.",
+        missingTextHeader: "{item} - faltas com subcrafts para {qty} crafts:",
+        itemNotFound: "Item craftavel nao encontrado.",
+        inventoryReset: "Inventario zerado.",
+        materialsMarkedReady: "Materiais marcados como prontos.",
+        missingCopied: "Lista copiada.",
+        copyMissingManual: "Copie a lista manualmente na lateral.",
+        processLinkPrompt: "Copie o link do processo:",
+        copiedViewLink: "Link sem edicao copiado.",
+        copiedEditLink: "Link editavel copiado.",
+        copiedManual: "Copie o link manualmente.",
+        readOnlyLink: "Este link e somente para visualizacao.",
+        firebaseConfigMissing: "Configure o firebaseConfig no codigo antes de salvar online.",
+        firebaseNotConfigured: "Firebase nao configurado",
+        waitOnlineProcess: "Aguarde o processo online carregar.",
+        processSaved: "Processo salvo online.",
+        onlineSaveError: "Erro ao salvar online",
+        savingOnline: "Salvando online",
+        connectingProcess: "Conectando ao processo",
+        openingView: "Abrindo visualizacao",
+        viewWithoutProcess: "Visualizacao sem processo salvo",
+        linkWithoutProcess: "Link sem processo salvo",
+        processNotSavedYet: "Processo online ainda nao existe. Clique em Salvar online para criar.",
+        realtimeView: "Visualizacao em tempo real",
+        realtimeOnline: "Online em tempo real",
+        syncError: "Erro na sincronizacao",
+        realtimeError: "Erro no tempo real. Confira Firebase, Firestore e regras.",
+        localOnly: "Somente local",
+        enableFirestore: "Ative Cloud Firestore no Firebase.",
+        firestorePermission: "Firestore sem permissao. Confira as regras.",
+        firestoreError: "Erro no Firestore. Confira o Firebase.",
+        footerText: "Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2.440. A expectativa de sucesso e apenas media estatistica; cada tentativa continua independente. O calculo de Fang of Stakato e referente ao servidor Eternal do L2 Reborn."
+      },
+      en: {
+        appTitle: "Craft Calculator",
+        pageTitle: "Craft Calculator - {item}",
+        subtitle: "Craftable Lineage 2 Interlude recipes, using craft-page data from",
+        languageSwitcher: "Language",
+        craftSettings: "Craft settings",
+        craftableItem: "Craftable item",
+        searchPlaceholder: "Search craftable item...",
+        catalogLoading: "Loading craft list...",
+        craftsLoaded: "{count} craftable recipes loaded.",
+        catalogLoadFailed: "Could not load the full list; using local Arcana Mace data.",
+        catalogUnavailable: "Could not load the full list.",
+        catalogStillLoading: "The craft list is still loading.",
+        crafts: "Crafts",
+        shortcuts: "Shortcuts",
+        quickQuantity: "Quick quantity",
+        overallCraftProgress: "Overall craft progress",
+        overallWithSubcrafts: "Overall progress with subcrafts",
+        materialsUnit: "materials",
+        summary: "Summary",
+        overallProcess: "Overall process",
+        chance: "Chance",
+        expectedSuccess: "Expected success",
+        materialsWithSubcrafts: "Materials with subcrafts",
+        actionsAndMissing: "Actions and missing items",
+        copyMissing: "Copy missing",
+        saveOnline: "Save online",
+        copyEditableLink: "Copy editable link",
+        copyViewLink: "Copy view-only link",
+        copyThisViewLink: "Copy this view link",
+        resetInventory: "Reset inventory",
+        markAllReady: "Mark all ready",
+        missingMaterials: "Missing materials",
+        missingList: "Missing list",
+        material: "Material",
+        have: "Have",
+        progressPercent: "Progress %",
+        expandSubitems: "Expand",
+        collapseSubitems: "Collapse",
+        expandSubitemsOf: "{action} subitems for {item}. Craft {qty}.",
+        subitemsTitle: "{action} subitems",
+        haveItem: "Have {item}",
+        progressOf: "Progress for {item}",
+        selectCraftFirst: "Select a craftable item to start.",
+        noBuyableMissing: "No buyable missing items",
+        allReady: "All ready",
+        fang: "Fang",
+        missingTextReady: "{item}: all materials are ready.",
+        missingTextHeader: "{item} - missing with subcrafts for {qty} crafts:",
+        itemNotFound: "Craftable item not found.",
+        inventoryReset: "Inventory reset.",
+        materialsMarkedReady: "Materials marked as ready.",
+        missingCopied: "List copied.",
+        copyMissingManual: "Copy the list manually from the side panel.",
+        processLinkPrompt: "Copy the process link:",
+        copiedViewLink: "View-only link copied.",
+        copiedEditLink: "Editable link copied.",
+        copiedManual: "Copy the link manually.",
+        readOnlyLink: "This link is view-only.",
+        firebaseConfigMissing: "Configure firebaseConfig in the code before saving online.",
+        firebaseNotConfigured: "Firebase not configured",
+        waitOnlineProcess: "Wait for the online process to load.",
+        processSaved: "Process saved online.",
+        onlineSaveError: "Error saving online",
+        savingOnline: "Saving online",
+        connectingProcess: "Connecting to process",
+        openingView: "Opening view",
+        viewWithoutProcess: "View without saved process",
+        linkWithoutProcess: "Link without saved process",
+        processNotSavedYet: "The online process does not exist yet. Click Save online to create it.",
+        realtimeView: "Realtime view",
+        realtimeOnline: "Online in realtime",
+        syncError: "Sync error",
+        realtimeError: "Realtime error. Check Firebase, Firestore, and rules.",
+        localOnly: "Local only",
+        enableFirestore: "Enable Cloud Firestore in Firebase.",
+        firestorePermission: "Firestore has no permission. Check the rules.",
+        firestoreError: "Firestore error. Check Firebase.",
+        footerText: "Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2,440. Expected success is only a statistical average; every attempt remains independent. The Fang of Stakato calculation refers to the Eternal server on L2 Reborn."
+      },
+      ru: {
+        appTitle: "Калькулятор крафта",
+        pageTitle: "Калькулятор крафта - {item}",
+        subtitle: "Крафтовые рецепты Lineage 2 Interlude, данные со страницы крафта",
+        languageSwitcher: "Язык",
+        craftSettings: "Настройки крафта",
+        craftableItem: "Предмет для крафта",
+        searchPlaceholder: "Найти предмет для крафта...",
+        catalogLoading: "Загрузка списка крафтов...",
+        craftsLoaded: "Загружено рецептов: {count}.",
+        catalogLoadFailed: "Не удалось загрузить полный список; используются локальные данные Arcana Mace.",
+        catalogUnavailable: "Не удалось загрузить полный список.",
+        catalogStillLoading: "Список крафтов еще загружается.",
+        crafts: "Крафты",
+        shortcuts: "Быстрый выбор",
+        quickQuantity: "Быстрое количество",
+        overallCraftProgress: "Общий прогресс крафта",
+        overallWithSubcrafts: "Общий прогресс с подкрафтами",
+        materialsUnit: "материалов",
+        summary: "Сводка",
+        overallProcess: "Общий процесс",
+        chance: "Шанс",
+        expectedSuccess: "Ожидаемый успех",
+        materialsWithSubcrafts: "Материалы с подкрафтами",
+        actionsAndMissing: "Действия и нехватка",
+        copyMissing: "Скопировать нехватку",
+        saveOnline: "Сохранить онлайн",
+        copyEditableLink: "Скопировать ссылку для редактирования",
+        copyViewLink: "Скопировать ссылку просмотра",
+        copyThisViewLink: "Скопировать ссылку этого просмотра",
+        resetInventory: "Обнулить инвентарь",
+        markAllReady: "Отметить все готовым",
+        missingMaterials: "Не хватает материалов",
+        missingList: "Список нехватки",
+        material: "Материал",
+        have: "Есть",
+        progressPercent: "Прогресс %",
+        expandSubitems: "Развернуть",
+        collapseSubitems: "Свернуть",
+        expandSubitemsOf: "{action} подматериалы для {item}. Крафт: {qty}.",
+        subitemsTitle: "{action} подматериалы",
+        haveItem: "Есть {item}",
+        progressOf: "Прогресс для {item}",
+        selectCraftFirst: "Выберите предмет для крафта, чтобы начать.",
+        noBuyableMissing: "Нет покупаемой нехватки",
+        allReady: "Все готово",
+        fang: "Fang",
+        missingTextReady: "{item}: все материалы готовы.",
+        missingTextHeader: "{item} - нехватка с подкрафтами для {qty} крафтов:",
+        itemNotFound: "Предмет для крафта не найден.",
+        inventoryReset: "Инвентарь обнулен.",
+        materialsMarkedReady: "Материалы отмечены как готовые.",
+        missingCopied: "Список скопирован.",
+        copyMissingManual: "Скопируйте список вручную в боковой панели.",
+        processLinkPrompt: "Скопируйте ссылку процесса:",
+        copiedViewLink: "Ссылка просмотра скопирована.",
+        copiedEditLink: "Ссылка для редактирования скопирована.",
+        copiedManual: "Скопируйте ссылку вручную.",
+        readOnlyLink: "Эта ссылка только для просмотра.",
+        firebaseConfigMissing: "Настройте firebaseConfig в коде перед онлайн-сохранением.",
+        firebaseNotConfigured: "Firebase не настроен",
+        waitOnlineProcess: "Дождитесь загрузки онлайн-процесса.",
+        processSaved: "Процесс сохранен онлайн.",
+        onlineSaveError: "Ошибка онлайн-сохранения",
+        savingOnline: "Сохранение онлайн",
+        connectingProcess: "Подключение к процессу",
+        openingView: "Открытие просмотра",
+        viewWithoutProcess: "Просмотр без сохраненного процесса",
+        linkWithoutProcess: "Ссылка без сохраненного процесса",
+        processNotSavedYet: "Онлайн-процесс еще не существует. Нажмите Сохранить онлайн, чтобы создать его.",
+        realtimeView: "Просмотр в реальном времени",
+        realtimeOnline: "Онлайн в реальном времени",
+        syncError: "Ошибка синхронизации",
+        realtimeError: "Ошибка реального времени. Проверьте Firebase, Firestore и правила.",
+        localOnly: "Только локально",
+        enableFirestore: "Включите Cloud Firestore в Firebase.",
+        firestorePermission: "У Firestore нет разрешения. Проверьте правила.",
+        firestoreError: "Ошибка Firestore. Проверьте Firebase.",
+        footerText: "Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2 440. Ожидаемый успех - только статистическое среднее; каждая попытка остается независимой. Расчет Fang of Stakato относится к серверу Eternal на L2 Reborn."
+      }
+    };
+    let currentLanguage = normalizeLanguage(localStorage.getItem(languageStateKey) || "pt");
+    const fangExchangeRates = [
+      { name: "Enria", quantity: 1, fangCost: 12 },
+      { name: "Asofe", quantity: 1, fangCost: 6 },
+      { name: "Thons", quantity: 1, fangCost: 6 },
+      { name: "Varnish of Purity", quantity: 10, fangCost: 81 },
+      { name: "Synthetic Cokes", quantity: 5, fangCost: 33 },
+      { name: "Compound Braid", quantity: 10, fangCost: 30 },
+      { name: "Mithril Alloy", quantity: 10, fangCost: 131 },
+      { name: "Durable Metal Plate", quantity: 10, fangCost: 150 },
+      { name: "Oriharukon", quantity: 5, fangCost: 123 }
+    ];
+    const fangExchangeByName = new Map(fangExchangeRates.map((rate) => [rate.name, rate]));
     const elements = {
       title: document.querySelector("#title"),
+      subtitleText: document.querySelector("#subtitleText"),
       itemIcon: document.querySelector("#itemIcon"),
       sourceLink: document.querySelector("#sourceLink"),
+      languageButtons: document.querySelectorAll("[data-language]"),
       craftSearch: document.querySelector("#craftSearch"),
       craftOptions: document.querySelector("#craftOptions"),
       catalogMeta: document.querySelector("#catalogMeta"),
@@ -923,6 +1249,8 @@
       missingKinds: document.querySelector("#missingKinds"),
       missingTotal: document.querySelector("#missingTotal"),
       missingList: document.querySelector("#missingList"),
+      fangTotal: document.querySelector("#fangTotal"),
+      fangList: document.querySelector("#fangList"),
       syncStatusBox: document.querySelector("#syncStatusBox"),
       syncStatusText: document.querySelector("#syncStatusText"),
       toast: document.querySelector("#toast"),
@@ -933,25 +1261,92 @@
       fillRequired: document.querySelector("#fillRequired")
     };
 
+    function normalizeLanguage(language) {
+      const normalized = String(language || "").slice(0, 2).toLowerCase();
+      return languageOptions[normalized] ? normalized : "pt";
+    }
+
+    function t(key, params = {}) {
+      const template = translations[currentLanguage]?.[key] ?? translations.pt[key] ?? key;
+      return template.replace(/\{(\w+)\}/g, (_, name) => (
+        params[name] == null ? "" : String(params[name])
+      ));
+    }
+
+    function isTranslationKey(key) {
+      return Boolean(translations[currentLanguage]?.[key] ?? translations.pt[key]);
+    }
+
+    function applyTranslations() {
+      document.documentElement.lang = languageOptions[currentLanguage].htmlLang;
+
+      document.querySelectorAll("[data-i18n]").forEach((element) => {
+        element.textContent = t(element.dataset.i18n);
+      });
+
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+        element.placeholder = t(element.dataset.i18nPlaceholder);
+      });
+
+      document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+        element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+      });
+
+      elements.subtitleText.textContent = t("subtitle");
+      elements.languageButtons.forEach((button) => {
+        const active = button.dataset.language === currentLanguage;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+
+      if (readOnlyMode) {
+        elements.copyViewProcessLink.textContent = t("copyThisViewLink");
+      }
+
+      if (catalogLoaded) {
+        renderCraftSearchOptions();
+      } else if (catalogLoadFailed) {
+        elements.catalogMeta.textContent = t("catalogLoadFailed");
+      }
+
+      syncSelectedCraftUi();
+      renderSyncStatus();
+    }
+
+    function setLanguage(language) {
+      const nextLanguage = normalizeLanguage(language);
+      if (nextLanguage === currentLanguage) return;
+
+      currentLanguage = nextLanguage;
+      localStorage.setItem(languageStateKey, currentLanguage);
+      applyTranslations();
+      render({ persist: false, online: false });
+    }
+
     const defaultState = {
-      selectedTargetKey: defaultCraftKey,
+      selectedTargetKey: "",
       quantity: 20,
       inventory: {},
       expanded: {}
     };
 
     let state = loadLocalState();
+    let currentSyncStatus = {
+      kind: "local",
+      message: "localOnly",
+      params: {},
+      isKey: true
+    };
 
     function normalizeState(value) {
+      const selectedTargetKey = urlParams.get("craft") ||
+        (processId ? (value?.selectedTargetKey || value?.expanded?.[selectedCraftStateKey]) : "") ||
+        "";
+
       return {
         ...defaultState,
         ...(value || {}),
-        selectedTargetKey: String(
-          value?.selectedTargetKey ||
-          value?.expanded?.[selectedCraftStateKey] ||
-          urlParams.get("craft") ||
-          defaultState.selectedTargetKey
-        ),
+        selectedTargetKey: String(selectedTargetKey),
         quantity: Math.max(toSafeNumber(value?.quantity, defaultState.quantity), 1),
         inventory: value?.inventory || {},
         expanded: value?.expanded || {}
@@ -986,14 +1381,14 @@
       const reason = error?.details?.find((detail) => detail.reason)?.reason;
 
       if (reason === "SERVICE_DISABLED") {
-        return "Ative Cloud Firestore no Firebase.";
+        return t("enableFirestore");
       }
 
       if (error?.status === "PERMISSION_DENIED") {
-        return "Firestore sem permissao. Confira as regras.";
+        return t("firestorePermission");
       }
 
-      return "Erro no Firestore. Confira o Firebase.";
+      return t("firestoreError");
     }
 
     async function ensureFirestoreReady(id) {
@@ -1012,7 +1407,7 @@
 
     async function copyProcessLinkToClipboard(id = processId, { readOnly = false } = {}) {
       const link = getShareUrl(id, { readOnly });
-      const copiedMessage = readOnly ? "Link sem edicao copiado." : "Link editavel copiado.";
+      const copiedMessage = readOnly ? t("copiedViewLink") : t("copiedEditLink");
 
       try {
         if (navigator.clipboard && window.isSecureContext) {
@@ -1022,8 +1417,8 @@
           throw new Error("clipboard unavailable");
         }
       } catch {
-        window.prompt("Copie o link do processo:", link);
-        showToast("Copie o link manualmente.");
+        window.prompt(t("processLinkPrompt"), link);
+        showToast(t("copiedManual"));
       }
     }
 
@@ -1050,17 +1445,11 @@
     }
 
     function getCurrentTarget() {
-      return catalogTargetsByKey.get(state.selectedTargetKey) ||
-        catalogTargetsByKey.get(defaultCraftKey) ||
-        craftCatalog.targets[0] ||
-        null;
+      return catalogTargetsByKey.get(state.selectedTargetKey) || null;
     }
 
     function applyCatalogTarget() {
       const target = getCurrentTarget();
-      if (!target) return;
-
-      state.selectedTargetKey = target.key || `${target.item.id}:${target.recipeId}`;
       const nextIcons = {};
       const nextCraftRecipes = {};
 
@@ -1084,6 +1473,13 @@
 
       itemIcons = nextIcons;
       craftRecipes = nextCraftRecipes;
+
+      if (!target) {
+        recipe = createEmptyRecipe();
+        return;
+      }
+
+      state.selectedTargetKey = target.key || `${target.item.id}:${target.recipeId}`;
       recipe = {
         key: state.selectedTargetKey,
         itemId: target.item.id,
@@ -1109,19 +1505,20 @@
       elements.craftOptions.innerHTML = craftCatalog.targets
         .map((target) => `<option value="${getTargetLabel(target)}"></option>`)
         .join("");
-      elements.catalogMeta.textContent = `${formatNumber(craftCatalog.targets.length)} receitas craftaveis carregadas.`;
+      elements.catalogMeta.textContent = t("craftsLoaded", { count: formatNumber(craftCatalog.targets.length) });
     }
 
     function syncSelectedCraftUi() {
       const target = getCurrentTarget();
-      const itemIcon = getIconUrl(target?.item?.icon || "weapon_arcana_mace_i00");
+      const hasTarget = Boolean(target);
+      const itemIcon = getIconUrl(hasTarget ? target.item.icon : "etc_recipe_black_i00");
 
-      elements.title.textContent = `Calculadora de Craft - ${recipe.item}`;
+      elements.title.textContent = hasTarget ? t("pageTitle", { item: recipe.item }) : t("appTitle");
       elements.itemIcon.src = itemIcon;
-      elements.itemIcon.alt = recipe.item;
-      elements.sourceLink.href = `https://l2hub.info/il/items/${recipe.itemName}/craft`;
-      elements.craftSearch.value = target ? getTargetLabel(target) : recipe.item;
-      document.title = `Calculadora de Craft - ${recipe.item}`;
+      elements.itemIcon.alt = hasTarget ? recipe.item : "";
+      elements.sourceLink.href = hasTarget ? `https://l2hub.info/il/items/${recipe.itemName}/craft` : "https://l2hub.info/il";
+      elements.craftSearch.value = hasTarget ? getTargetLabel(target) : "";
+      document.title = hasTarget ? t("pageTitle", { item: recipe.item }) : t("appTitle");
     }
 
     function findCraftTargetFromSearch(value) {
@@ -1178,9 +1575,9 @@
         catalogItemsById = new Map(craftCatalog.items.map((item) => [item.id, item]));
         catalogLoaded = craftCatalog.targets.length > 0;
 
-        if (!catalogTargetsByKey.has(state.selectedTargetKey)) {
+        if (state.selectedTargetKey && !catalogTargetsByKey.has(state.selectedTargetKey)) {
           const byItemId = craftCatalog.targets.find((target) => String(target.item.id) === state.selectedTargetKey);
-          state.selectedTargetKey = byItemId?.key || defaultCraftKey;
+          state.selectedTargetKey = byItemId?.key || "";
         }
 
         renderCraftSearchOptions();
@@ -1189,15 +1586,15 @@
       } catch (error) {
         console.error(error);
         catalogLoadFailed = true;
-        elements.catalogMeta.textContent = "Nao foi possivel carregar a lista completa; usando Arcana Mace local.";
+        elements.catalogMeta.textContent = t("catalogLoadFailed");
         setEditingLocked(editingLocked);
       }
     }
 
     function showCatalogUnavailableToast() {
       showToast(catalogLoadFailed
-        ? "Nao foi possivel carregar a lista completa."
-        : "A lista de crafts ainda esta carregando.");
+        ? t("catalogUnavailable")
+        : t("catalogStillLoading"));
     }
 
     function loadLocalState() {
@@ -1209,9 +1606,23 @@
       }
     }
 
-    function setSyncStatus(kind, message) {
-      elements.syncStatusBox.className = `sync-status ${kind}`;
-      elements.syncStatusText.textContent = message;
+    function renderSyncStatus() {
+      if (!currentSyncStatus) return;
+
+      elements.syncStatusBox.className = `sync-status ${currentSyncStatus.kind}`;
+      elements.syncStatusText.textContent = currentSyncStatus.isKey
+        ? t(currentSyncStatus.message, currentSyncStatus.params)
+        : currentSyncStatus.message;
+    }
+
+    function setSyncStatus(kind, message, params = {}) {
+      currentSyncStatus = {
+        kind,
+        message,
+        params,
+        isKey: isTranslationKey(message)
+      };
+      renderSyncStatus();
     }
 
     function applyReadOnlyModeChrome() {
@@ -1221,7 +1632,7 @@
       elements.copyProcessLink.hidden = true;
       elements.resetInventory.hidden = true;
       elements.fillRequired.hidden = true;
-      elements.copyViewProcessLink.textContent = "Copiar link desta visualizacao";
+      elements.copyViewProcessLink.textContent = t("copyThisViewLink");
     }
 
     function setEditingLocked(locked) {
@@ -1273,8 +1684,8 @@
       setSyncStatus(
         waitForRemote ? "connecting" : "saving",
         waitForRemote
-          ? (readOnlyMode ? "Abrindo visualizacao" : "Conectando ao processo")
-          : "Salvando online"
+          ? (readOnlyMode ? "openingView" : "connectingProcess")
+          : "savingOnline"
       );
 
       ensureFirestoreReady(id).catch((error) => {
@@ -1294,8 +1705,8 @@
           setEditingLocked(false);
 
           if (!snapshot.exists()) {
-            setSyncStatus("local", readOnlyMode ? "Visualizacao sem processo salvo" : "Link sem processo salvo");
-            showToast("Processo online ainda nao existe. Clique em Salvar online para criar.");
+            setSyncStatus("local", readOnlyMode ? "viewWithoutProcess" : "linkWithoutProcess");
+            showToast(t("processNotSavedYet"));
             return;
           }
 
@@ -1317,8 +1728,8 @@
           setSyncStatus(
             snapshot.metadata.hasPendingWrites ? "saving" : "online",
             snapshot.metadata.hasPendingWrites
-              ? "Salvando online"
-              : (readOnlyMode ? "Visualizacao em tempo real" : "Online em tempo real")
+              ? "savingOnline"
+              : (readOnlyMode ? "realtimeView" : "realtimeOnline")
           );
         },
         (error) => {
@@ -1326,8 +1737,8 @@
           hasLoadedRemote = true;
           isLoadingRemote = false;
           setEditingLocked(false);
-          setSyncStatus("error", "Erro na sincronizacao");
-          showToast("Erro no tempo real. Confira Firebase, Firestore e regras.");
+          setSyncStatus("error", "syncError");
+          showToast(t("realtimeError"));
         }
       );
 
@@ -1336,18 +1747,18 @@
 
     async function saveOnline({ copyLink = false, copyReadOnlyLink = false, manual = false } = {}) {
       if (readOnlyMode) {
-        showToast("Este link e somente para visualizacao.");
+        showToast(t("readOnlyLink"));
         return;
       }
 
       if (!firebaseEnabled) {
-        showToast("Configure o firebaseConfig no codigo antes de salvar online.");
-        setSyncStatus("error", "Firebase nao configurado");
+        showToast(t("firebaseConfigMissing"));
+        setSyncStatus("error", "firebaseNotConfigured");
         return;
       }
 
       if (processId && !hasLoadedRemote) {
-        showToast("Aguarde o processo online carregar.");
+        showToast(t("waitOnlineProcess"));
         return;
       }
 
@@ -1362,7 +1773,7 @@
         }
 
         window.clearTimeout(saveOnlineTimer);
-        setSyncStatus("saving", "Salvando online");
+        setSyncStatus("saving", "savingOnline");
         await ensureFirestoreReady(processId);
         await setDoc(doc(db, "craftProcesses", processId), getPublicState(), { merge: true });
         startRealtimeSync(processId, { waitForRemote: false });
@@ -1370,11 +1781,11 @@
         if (copyLink || copyReadOnlyLink) {
           await copyProcessLinkToClipboard(processId, { readOnly: copyReadOnlyLink });
         } else if (manual) {
-          showToast("Processo salvo online.");
+          showToast(t("processSaved"));
         }
       } catch (error) {
         console.error(error);
-        const message = error?.message || "Erro ao salvar online";
+        const message = error?.message || t("onlineSaveError");
         setSyncStatus("error", message);
         showToast(message);
       }
@@ -1384,7 +1795,7 @@
       if (readOnlyMode) return;
       if (!firebaseEnabled || !processId || isLoadingRemote || !hasLoadedRemote) return;
       window.clearTimeout(saveOnlineTimer);
-      setSyncStatus("saving", "Salvando online");
+      setSyncStatus("saving", "savingOnline");
       saveOnlineTimer = window.setTimeout(() => saveOnline(), 650);
     }
 
@@ -1609,7 +2020,7 @@
       elements.overallProgressBar.style.width = `${progress.percent}%`;
       elements.overallProgressText.textContent = `${progress.percent}%`;
       elements.overallProgressCard.textContent = `${progress.percent}%`;
-      elements.overallProgressUnits.textContent = `${formatNumber(progress.have)} / ${formatNumber(progress.required)} materiais`;
+      elements.overallProgressUnits.textContent = `${formatNumber(progress.have)} / ${formatNumber(progress.required)} ${t("materialsUnit")}`;
     }
 
     function render({ persist = true, online = true } = {}) {
@@ -1619,7 +2030,7 @@
       elements.craftQty.value = state.quantity;
       elements.craftQty.disabled = editingLocked;
       elements.successRate.textContent = recipe.successRateLabel;
-      elements.expectedSuccess.textContent = (state.quantity * recipe.successRate).toFixed(1);
+      elements.expectedSuccess.textContent = decimalFormatter.format(state.quantity * recipe.successRate);
 
       document.querySelectorAll("[data-preset]").forEach((button) => {
         button.classList.toggle("active", Number(button.dataset.preset) === state.quantity);
@@ -1634,12 +2045,17 @@
     }
 
     function renderMaterials() {
+      if (!recipe.materials.length) {
+        elements.materials.innerHTML = `<div class="empty-materials">${t("selectCraftFirst")}</div>`;
+        return;
+      }
+
       const plan = calculateExpandedPlan();
       const header = `
         <div class="plan-row header">
-          <span>Material</span>
-          <span>Tenho</span>
-          <span>Avanco %</span>
+          <span>${t("material")}</span>
+          <span>${t("have")}</span>
+          <span>${t("progressPercent")}</span>
         </div>
       `;
 
@@ -1652,20 +2068,21 @@
           const havePercent = Math.max(100 - missingPercent, 0);
           const canExpand = row.craftQty > 0;
           const expanded = isExpanded(row.name);
+          const toggleAction = expanded ? t("collapseSubitems") : t("expandSubitems");
 
           return `
           <div class="plan-row ${row.depth > 0 ? "subitem-row" : ""}" data-plan-row="${row.name}">
             <div
               class="cell plan-name ${canExpand ? "has-subitems" : ""}"
-              data-label="Material"
+              data-label="${t("material")}"
               style="--depth: ${row.depth}"
               ${canExpand ? `
                 data-toggle-subitems="${row.name}"
                 role="button"
                 tabindex="${editingLocked ? "-1" : "0"}"
                 aria-expanded="${expanded ? "true" : "false"}"
-                aria-label="${expanded ? "Recolher" : "Expandir"} subitens de ${row.name}. Craftar ${formatNumber(row.craftQty)}."
-                title="${expanded ? "Recolher" : "Expandir"} subitens"
+                aria-label="${t("expandSubitemsOf", { action: toggleAction, item: row.name, qty: formatNumber(row.craftQty) })}"
+                title="${t("subitemsTitle", { action: toggleAction })}"
               ` : ""}
             >
               <span class="item-ref">
@@ -1673,21 +2090,21 @@
                 <span>${row.name}</span>
               </span>
             </div>
-            <div class="cell" data-label="Tenho">
+            <div class="cell" data-label="${t("have")}">
               <input
                 type="number"
                 min="0"
                 step="1"
                 inputmode="numeric"
                 value="${have}"
-                aria-label="Tenho ${row.name}"
+                aria-label="${t("haveItem", { item: row.name })}"
                 data-material="${row.name}"
                 ${editingLocked ? "disabled" : ""}
               />
             </div>
-            <div class="cell progress-percent ${missing === 0 ? "ready" : "missing"}" data-label="Avanco %" data-progress-cell>
+            <div class="cell progress-percent ${missing === 0 ? "ready" : "missing"}" data-label="${t("progressPercent")}" data-progress-cell>
               <span data-progress-value>${havePercent}%</span>
-              <div class="progress" aria-label="Progresso de ${row.name}">
+              <div class="progress" aria-label="${t("progressOf", { item: row.name })}">
                 <div class="progress-fill" data-progress-fill style="width: ${havePercent}%"></div>
               </div>
             </div>
@@ -1698,7 +2115,103 @@
       elements.materials.innerHTML = header + rows;
     }
 
+    function getFangExchangeNeeds(inventory = state.inventory) {
+      const available = Object.fromEntries(
+        Object.entries(inventory).map(([name, value]) => [name, toSafeNumber(value)])
+      );
+      const needsByName = new Map();
+
+      function addNeed(name, quantity) {
+        needsByName.set(name, (needsByName.get(name) || 0) + quantity);
+      }
+
+      function requestBuyableMaterial(name, quantity, trail = new Set()) {
+        const required = toSafeNumber(quantity);
+        if (required <= 0) return;
+
+        const availableQty = toSafeNumber(available[name]);
+        const used = Math.min(availableQty, required);
+        available[name] = availableQty - used;
+
+        const missing = required - used;
+        if (missing <= 0) return;
+
+        if (fangExchangeByName.has(name)) {
+          addNeed(name, missing);
+          return;
+        }
+
+        const craft = craftRecipes[name];
+        if (!craft || trail.has(name)) return;
+
+        const resultQty = Math.max(toSafeNumber(craft.resultQty, 1), 1);
+        const craftQty = Math.ceil(missing / resultQty);
+        const nextTrail = new Set(trail);
+        nextTrail.add(name);
+
+        craft.materials.forEach((material) => {
+          requestBuyableMaterial(material.name, material.qty * craftQty, nextTrail);
+        });
+      }
+
+      recipe.materials.forEach((material) => {
+        requestBuyableMaterial(material.name, material.perCraft * state.quantity);
+      });
+
+      return fangExchangeRates
+        .map((rate) => {
+          const missing = needsByName.get(rate.name) || 0;
+          const packs = Math.ceil(missing / rate.quantity);
+          return {
+            ...rate,
+            missing,
+            packs,
+            received: packs * rate.quantity,
+            totalFang: packs * rate.fangCost
+          };
+        })
+        .filter((entry) => entry.missing > 0);
+    }
+
+    function renderFangCalculator() {
+      if (!recipe.materials.length) {
+        elements.fangTotal.textContent = `0 ${t("fang")}`;
+        elements.fangList.innerHTML = `<li><span>${t("selectCraftFirst")}</span><strong>-</strong></li>`;
+        return;
+      }
+
+      const entries = getFangExchangeNeeds();
+      const totalFang = entries.reduce((sum, entry) => sum + entry.totalFang, 0);
+
+      elements.fangTotal.textContent = `${formatNumber(totalFang)} ${t("fang")}`;
+      elements.fangList.innerHTML = entries.length
+        ? entries.map((entry) => `
+          <li>
+            <span class="item-ref">
+              <img src="${getItemIcon(entry.name)}" alt="" />
+              <span>
+                ${entry.name}
+                <span class="exchange-rate">x${formatNumber(entry.quantity)} = ${formatNumber(entry.fangCost)} ${t("fang")}</span>
+              </span>
+            </span>
+            <strong class="exchange-cost">
+              ${formatNumber(entry.totalFang)} ${t("fang")}
+              <small>${formatNumber(entry.missing)} / ${formatNumber(entry.received)}</small>
+            </strong>
+          </li>
+        `).join("")
+        : `<li><span>${t("noBuyableMissing")}</span><strong>0 ${t("fang")}</strong></li>`;
+    }
+
     function renderMissing() {
+      if (!recipe.materials.length) {
+        elements.missingKinds.textContent = "0";
+        elements.missingTotal.textContent = "0";
+        elements.missingList.innerHTML = `<li><span>${t("selectCraftFirst")}</span><strong>-</strong></li>`;
+        renderFangCalculator();
+        return;
+      }
+
       const requiredByName = new Map(
         calculateExpandedPlan({}).leafRows.map((material) => [material.name, material.missing])
       );
@@ -1720,7 +2233,9 @@
             <strong>${formatNumber(requiredByName.get(material.name) || material.missing)} / ${formatNumber(material.missing)}</strong>
           </li>
         `).join("")
-        : "<li><span>Tudo pronto</span><strong>OK</strong></li>";
+        : `<li><span>${t("allReady")}</span><strong>OK</strong></li>`;
+
+      renderFangCalculator();
     }
 
     function showToast(message) {
@@ -1739,8 +2254,8 @@
         .filter((material) => material.missing > 0)
         .map((material) => `${material.name}: ${requiredByName.get(material.name) || material.missing} / ${material.missing}`);
 
-      if (!lines.length) return `${recipe.item}: todos os materiais estao prontos.`;
-      return [`${recipe.item} - faltas com subcrafts para ${state.quantity} crafts:`, ...lines].join("\n");
+      if (!lines.length) return t("missingTextReady", { item: recipe.item });
+      return [t("missingTextHeader", { item: recipe.item, qty: state.quantity }), ...lines].join("\n");
     }
 
     function getActiveMaterialInput() {
@@ -1790,7 +2305,7 @@
       const target = findCraftTargetFromSearch(event.target.value);
       if (!target) {
         syncSelectedCraftUi();
-        showToast("Item craftavel nao encontrado.");
+        showToast(t("itemNotFound"));
         return;
       }
 
@@ -1809,7 +2324,7 @@
       const target = findCraftTargetFromSearch(event.currentTarget.value);
 
       if (!target) {
-        showToast("Item craftavel nao encontrado.");
+        showToast(t("itemNotFound"));
         return;
       }
 
@@ -1877,6 +2392,12 @@
       toggleSubitems(toggle.dataset.toggleSubitems);
     });
 
+    elements.languageButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setLanguage(button.dataset.language);
+      });
+    });
+
     document.querySelectorAll("[data-preset]").forEach((button) => {
       button.addEventListener("click", () => {
         if (readOnlyMode) return;
@@ -1890,7 +2411,7 @@
       if (readOnlyMode) return;
       state.inventory = {};
       render();
-      showToast("Inventario zerado.");
+      showToast(t("inventoryReset"));
     });
 
     document.querySelector("#fillRequired").addEventListener("click", () => {
@@ -1899,16 +2420,16 @@
         state.inventory[material.name] = getTotal(material);
       });
       render();
-      showToast("Materiais marcados como prontos.");
+      showToast(t("materialsMarkedReady"));
     });
 
     document.querySelector("#copyMissing").addEventListener("click", async () => {
       const text = getMissingText();
       try {
         await navigator.clipboard.writeText(text);
-        showToast("Lista copiada.");
+        showToast(t("missingCopied"));
       } catch {
-        showToast("Copie a lista manualmente na lateral.");
+        showToast(t("copyMissingManual"));
       }
     });
 
@@ -1918,7 +2439,7 @@
 
     elements.copyProcessLink.addEventListener("click", async () => {
       if (readOnlyMode) {
-        showToast("Este link e somente para visualizacao.");
+        showToast(t("readOnlyLink"));
         return;
       }
 
@@ -1939,6 +2460,7 @@
       await copyProcessLinkToClipboard(processId, { readOnly: true });
     });
 
+    applyTranslations();
     applyReadOnlyModeChrome();
     loadCraftCatalog();
 
@@ -1946,7 +2468,7 @@
       startRealtimeSync(processId);
       render({ online: false });
     } else {
-      setSyncStatus(firebaseEnabled ? "local" : "error", firebaseEnabled ? "Somente local" : "Firebase nao configurado");
+      setSyncStatus(firebaseEnabled ? "local" : "error", firebaseEnabled ? "localOnly" : "firebaseNotConfigured");
       render();
     }
   </script>
