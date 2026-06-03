@@ -351,6 +351,12 @@
       overflow-wrap: anywhere;
     }
 
+    .item-qty {
+      color: var(--gold);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
     .number {
       color: var(--text);
       font-weight: 800;
@@ -2119,7 +2125,7 @@
             >
               <span class="item-ref">
                 <img src="${getItemIcon(row.name)}" alt="" />
-                <span>${row.name}</span>
+                <span>${row.name} <span class="item-qty">x${formatNumber(row.required)}</span></span>
               </span>
             </div>
             <div class="cell" data-label="${t("have")}">
@@ -2244,9 +2250,6 @@
         return;
       }
 
-      const requiredByName = new Map(
-        calculateExpandedPlan({}).leafRows.map((material) => [material.name, material.missing])
-      );
       const missingItems = calculateExpandedPlan().leafRows
         .filter((material) => material.missing > 0);
 
@@ -2262,7 +2265,7 @@
               <img src="${getItemIcon(material.name)}" alt="" />
               <span>${material.name}</span>
             </span>
-            <strong>${formatNumber(requiredByName.get(material.name) || material.missing)} / ${formatNumber(material.missing)}</strong>
+            <strong>x${formatNumber(material.missing)}</strong>
           </li>
         `).join("")
         : `<li><span>${t("allReady")}</span><strong>OK</strong></li>`;
