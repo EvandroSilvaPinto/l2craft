@@ -134,6 +134,12 @@
       min-width: 0;
     }
 
+    .identity-content {
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+
     .item-icon {
       width: 76px;
       height: 76px;
@@ -170,6 +176,8 @@
 
     .controls {
       display: grid;
+      grid-column: 2;
+      grid-row: 1 / span 2;
       grid-template-columns: 170px 1fr;
       gap: 12px;
       align-items: end;
@@ -212,6 +220,81 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+    }
+
+    .add-craft {
+      grid-column: 1 / -1;
+    }
+
+    .craft-cart {
+      display: grid;
+      grid-column: 1;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .craft-cart-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .craft-cart-list {
+      display: grid;
+      gap: 8px;
+      max-height: 238px;
+      overflow: auto;
+    }
+
+    .craft-cart-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 82px 42px;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-3);
+    }
+
+    .craft-cart-row input {
+      min-height: 38px;
+      padding: 8px 10px;
+    }
+
+    .craft-remove {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 38px;
+      min-height: 38px;
+      padding: 0;
+      border-color: var(--line);
+      background: transparent;
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .craft-remove:hover {
+      border-color: var(--red);
+      background: rgba(234, 105, 68, 0.12);
+      color: var(--text);
+    }
+
+    .craft-cart-empty {
+      padding: 10px 12px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
     }
 
     .primary {
@@ -601,7 +684,13 @@
       }
 
       .controls {
+        grid-column: auto;
+        grid-row: auto;
         min-width: 0;
+      }
+
+      .craft-cart {
+        grid-column: auto;
       }
 
       .stats {
@@ -623,6 +712,10 @@
         align-items: flex-start;
       }
 
+      .identity-content {
+        width: 100%;
+      }
+
       .item-icon {
         width: 58px;
         height: 58px;
@@ -631,12 +724,6 @@
 
       h1 {
         font-size: 25px;
-      }
-
-      .controls,
-      .quick-actions,
-      .stats {
-        grid-template-columns: 1fr;
       }
 
       .craft-progress-header {
@@ -701,7 +788,7 @@
       <div class="identity">
         <img id="itemIcon" class="item-icon" src="https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png"
           alt="" />
-        <div>
+        <div class="identity-content">
           <h1 id="title">Calculadora de Craft</h1>
           <p class="subtitle">
             <span id="subtitleText">Receitas craftaveis de Lineage 2 Interlude, com dados da pagina de craft do</span>
@@ -709,6 +796,14 @@
               rel="noreferrer">L2Hub</a>.
           </p>
         </div>
+      </div>
+
+      <div class="craft-cart" data-i18n-aria-label="activeCrafts" aria-label="Crafts ativos">
+        <div class="craft-cart-title">
+          <span data-i18n="activeCrafts">Crafts ativos</span>
+          <span id="activeCraftCount">0</span>
+        </div>
+        <div class="craft-cart-list" id="activeCrafts"></div>
       </div>
 
       <div class="controls" data-i18n-aria-label="craftSettings" aria-label="Configuracoes de craft">
@@ -731,6 +826,7 @@
             <button class="secondary active" type="button" data-preset="20">20x</button>
           </div>
         </div>
+        <button class="primary add-craft" type="button" id="addCraft" data-i18n="addCraft">Adicionar/atualizar</button>
       </div>
     </section>
 
@@ -791,6 +887,14 @@
             <span id="missingTotal">0</span>
           </div>
           <ul class="output-list" id="missingList"></ul>
+        </div>
+
+        <div class="output">
+          <div class="output-title">
+            <span data-i18n="pendingCrafts">Crafts pendentes</span>
+            <span id="pendingCraftTotal">0</span>
+          </div>
+          <ul class="output-list" id="pendingCraftList"></ul>
         </div>
 
         <div class="output">
@@ -1020,6 +1124,15 @@
         crafts: "Crafts",
         shortcuts: "Atalhos",
         quickQuantity: "Quantidade rapida",
+        addCraft: "Adicionar/atualizar",
+        activeCrafts: "Crafts ativos",
+        noActiveCrafts: "Nenhum craft ativo.",
+        changeCraftQty: "Quantidade de crafts de {item}",
+        removeCraft: "Remover {item}",
+        craftAdded: "{item} adicionado ao calculo.",
+        craftUpdated: "{item} atualizado no calculo.",
+        craftRemoved: "{item} removido do calculo.",
+        multiCraftTitle: "{count} itens",
         overallCraftProgress: "Progresso geral do craft",
         overallWithSubcrafts: "Progresso geral com subcrafts",
         materialsUnit: "materiais",
@@ -1038,6 +1151,8 @@
         markAllReady: "Marcar tudo pronto",
         missingMaterials: "Materiais em falta",
         missingList: "Lista de faltas",
+        pendingCrafts: "Crafts pendentes",
+        noPendingCrafts: "Nenhum craft pendente",
         material: "Material",
         have: "Tenho",
         progressPercent: "Avanco %",
@@ -1053,6 +1168,8 @@
         fang: "Fang",
         missingTextReady: "{item}: todos os materiais estao prontos.",
         missingTextHeader: "{item} - faltas com subcrafts para {qty} crafts:",
+        pendingCraftTextHeader: "Crafts pendentes:",
+        pendingCraftTextLine: "{item}: craftar {crafts}",
         missingFangAlternativeHeader: "Alternativa com Fang of Stakato:",
         missingFangAlternativeLine: "{item}: {missing} | Fang of Stakato: {fang}",
         missingFangAlternativeTotal: "Total Fang of Stakato: {fang}",
@@ -1103,6 +1220,15 @@
         crafts: "Crafts",
         shortcuts: "Shortcuts",
         quickQuantity: "Quick quantity",
+        addCraft: "Add/update",
+        activeCrafts: "Active crafts",
+        noActiveCrafts: "No active crafts.",
+        changeCraftQty: "Craft quantity for {item}",
+        removeCraft: "Remove {item}",
+        craftAdded: "{item} added to the calculator.",
+        craftUpdated: "{item} updated in the calculator.",
+        craftRemoved: "{item} removed from the calculator.",
+        multiCraftTitle: "{count} items",
         overallCraftProgress: "Overall craft progress",
         overallWithSubcrafts: "Overall progress with subcrafts",
         materialsUnit: "materials",
@@ -1121,6 +1247,8 @@
         markAllReady: "Mark all ready",
         missingMaterials: "Missing materials",
         missingList: "Missing list",
+        pendingCrafts: "Pending crafts",
+        noPendingCrafts: "No pending crafts",
         material: "Material",
         have: "Have",
         progressPercent: "Progress %",
@@ -1136,6 +1264,8 @@
         fang: "Fang",
         missingTextReady: "{item}: all materials are ready.",
         missingTextHeader: "{item} - missing with subcrafts for {qty} crafts:",
+        pendingCraftTextHeader: "Pending crafts:",
+        pendingCraftTextLine: "{item}: craft {crafts}",
         missingFangAlternativeHeader: "Fang of Stakato alternative:",
         missingFangAlternativeLine: "{item}: {missing} | Fang of Stakato: {fang}",
         missingFangAlternativeTotal: "Total Fang of Stakato: {fang}",
@@ -1186,6 +1316,15 @@
         crafts: "Крафты",
         shortcuts: "Быстрый выбор",
         quickQuantity: "Быстрое количество",
+        addCraft: "Add/update",
+        activeCrafts: "Active crafts",
+        noActiveCrafts: "No active crafts.",
+        changeCraftQty: "Craft quantity for {item}",
+        removeCraft: "Remove {item}",
+        craftAdded: "{item} added to the calculator.",
+        craftUpdated: "{item} updated in the calculator.",
+        craftRemoved: "{item} removed from the calculator.",
+        multiCraftTitle: "{count} items",
         overallCraftProgress: "Общий прогресс крафта",
         overallWithSubcrafts: "Общий прогресс с подкрафтами",
         materialsUnit: "материалов",
@@ -1204,6 +1343,8 @@
         markAllReady: "Отметить все готовым",
         missingMaterials: "Не хватает материалов",
         missingList: "Список нехватки",
+        pendingCrafts: "Pending crafts",
+        noPendingCrafts: "No pending crafts",
         material: "Материал",
         have: "Есть",
         progressPercent: "Прогресс %",
@@ -1219,6 +1360,8 @@
         fang: "Fang",
         missingTextReady: "{item}: все материалы готовы.",
         missingTextHeader: "{item} - нехватка с подкрафтами для {qty} крафтов:",
+        pendingCraftTextHeader: "Pending crafts:",
+        pendingCraftTextLine: "{item}: craft {crafts}",
         missingFangAlternativeHeader: "Альтернатива через Fang of Stakato:",
         missingFangAlternativeLine: "{item}: {missing} | Fang of Stakato: {fang}",
         missingFangAlternativeTotal: "Всего Fang of Stakato: {fang}",
@@ -1277,6 +1420,9 @@
       craftOptions: document.querySelector("#craftOptions"),
       catalogMeta: document.querySelector("#catalogMeta"),
       craftQty: document.querySelector("#craftQty"),
+      addCraft: document.querySelector("#addCraft"),
+      activeCrafts: document.querySelector("#activeCrafts"),
+      activeCraftCount: document.querySelector("#activeCraftCount"),
       materials: document.querySelector("#materials"),
       overallProgressBar: document.querySelector("#overallProgressBar"),
       overallProgressText: document.querySelector("#overallProgressText"),
@@ -1287,6 +1433,8 @@
       missingKinds: document.querySelector("#missingKinds"),
       missingTotal: document.querySelector("#missingTotal"),
       missingList: document.querySelector("#missingList"),
+      pendingCraftTotal: document.querySelector("#pendingCraftTotal"),
+      pendingCraftList: document.querySelector("#pendingCraftList"),
       fangTotal: document.querySelector("#fangTotal"),
       fangList: document.querySelector("#fangList"),
       syncStatusBox: document.querySelector("#syncStatusBox"),
@@ -1364,6 +1512,7 @@
     const defaultState = {
       selectedTargetKey: "",
       quantity: 20,
+      crafts: [],
       inventory: {},
       expanded: {}
     };
@@ -1377,24 +1526,74 @@
     };
 
     function normalizeState(value) {
-      const selectedTargetKey = urlParams.get("craft") ||
+      const craftParam = urlParams.get("craft");
+      const selectedTargetKey = craftParam ||
         (processId ? (value?.selectedTargetKey || value?.expanded?.[selectedCraftStateKey]) : "") ||
         "";
+      const quantity = Math.max(toSafeNumber(value?.quantity, defaultState.quantity), 1);
+      const shouldUseUrlCraft = Boolean(craftParam && !processId && !Array.isArray(value?.crafts));
+      const hasCrafts = Array.isArray(value?.crafts) && !shouldUseUrlCraft;
+      const crafts = hasCrafts
+        ? normalizeCraftEntries(value.crafts)
+        : normalizeCraftEntries(selectedTargetKey ? [{ targetKey: selectedTargetKey, quantity }] : []);
+      const nextSelectedTargetKey = String(selectedTargetKey || crafts[0]?.targetKey || "");
 
       return {
         ...defaultState,
         ...(value || {}),
-        selectedTargetKey: String(selectedTargetKey),
-        quantity: Math.max(toSafeNumber(value?.quantity, defaultState.quantity), 1),
+        selectedTargetKey: nextSelectedTargetKey,
+        quantity,
+        crafts,
         inventory: value?.inventory || {},
         expanded: value?.expanded || {}
       };
     }
 
+    function normalizeCraftEntries(crafts = []) {
+      const entriesByKey = new Map();
+
+      crafts.forEach((craft) => {
+        const targetKey = String(craft?.targetKey || craft?.key || craft?.selectedTargetKey || "");
+        const quantity = Math.max(toSafeNumber(craft?.quantity, defaultState.quantity), 1);
+        if (!targetKey) return;
+
+        const current = entriesByKey.get(targetKey);
+        if (current) {
+          current.quantity += quantity;
+        } else {
+          entriesByKey.set(targetKey, { targetKey, quantity });
+        }
+      });
+
+      return [...entriesByKey.values()];
+    }
+
+    function getPrimaryCraftKey({ activeOnly = false } = {}) {
+      const activeCraftKey = state.crafts[0]?.targetKey || "";
+      if (activeCraftKey || activeOnly) return activeCraftKey;
+      return state.selectedTargetKey || "";
+    }
+
+    function syncCraftUrl() {
+      const url = new URL(window.location.href);
+      const craftKey = getPrimaryCraftKey({ activeOnly: true });
+      if (craftKey) {
+        url.searchParams.set("craft", craftKey);
+      } else {
+        url.searchParams.delete("craft");
+      }
+      window.history.replaceState({}, "", url);
+    }
+
     function getShareUrl(id = processId, { readOnly = false } = {}) {
       const url = new URL(window.location.href);
       url.searchParams.set("id", id);
-      url.searchParams.set("craft", state.selectedTargetKey);
+      const craftKey = getPrimaryCraftKey({ activeOnly: true });
+      if (craftKey) {
+        url.searchParams.set("craft", craftKey);
+      } else {
+        url.searchParams.delete("craft");
+      }
       url.searchParams.delete("run");
       url.searchParams.delete("test");
       url.searchParams.delete("verify");
@@ -1482,12 +1681,157 @@
       };
     }
 
+    function getTargetKey(target) {
+      if (!target) return "";
+      return target?.key || `${target?.item?.id}:${target?.recipeId}`;
+    }
+
+    function resolveTargetKey(targetKey) {
+      const key = String(targetKey || "");
+      if (!key) return "";
+      if (catalogTargetsByKey.has(key)) return key;
+
+      const byItemId = craftCatalog.targets.find((target) => String(target.item.id) === key);
+      return byItemId ? getTargetKey(byItemId) : "";
+    }
+
+    function repairCraftEntriesFromCatalog() {
+      if (!catalogLoaded) return;
+
+      state.selectedTargetKey = resolveTargetKey(state.selectedTargetKey);
+      state.crafts = normalizeCraftEntries(state.crafts.map((craft) => ({
+        targetKey: resolveTargetKey(craft.targetKey),
+        quantity: craft.quantity
+      })).filter((craft) => craft.targetKey));
+
+      if (!state.selectedTargetKey && state.crafts.length) {
+        state.selectedTargetKey = state.crafts[0].targetKey;
+      }
+
+      const selectedCraft = state.crafts.find((craft) => craft.targetKey === state.selectedTargetKey);
+      if (selectedCraft) {
+        state.quantity = selectedCraft.quantity;
+      }
+    }
+
     function getCurrentTarget() {
       return catalogTargetsByKey.get(state.selectedTargetKey) || null;
     }
 
+    function createCraftEntry(target, quantity) {
+      const targetKey = getTargetKey(target);
+
+      return {
+        targetKey,
+        target,
+        quantity: Math.max(toSafeNumber(quantity, 1), 1),
+        item: target.item.name,
+        itemName: target.item.itemName,
+        successRate: (target.rate == null ? 100 : target.rate) / 100,
+        successRateLabel: target.rate == null ? "100%" : `${target.rate}%`,
+        materials: target.recipe.mats.map((material) => {
+          const item = getItemData(material.itemId);
+          return {
+            name: item.name,
+            perCraft: material.count,
+            icon: getIconUrl(item.icon)
+          };
+        })
+      };
+    }
+
+    function getActiveCrafts() {
+      return state.crafts
+        .map((craft) => {
+          const target = catalogTargetsByKey.get(craft.targetKey);
+          if (!target) return null;
+          return createCraftEntry(target, craft.quantity);
+        })
+        .filter(Boolean);
+    }
+
+    function getCraftSetTitle(activeCrafts = getActiveCrafts()) {
+      if (!activeCrafts.length) return "";
+      if (activeCrafts.length === 1) return activeCrafts[0].item;
+      return t("multiCraftTitle", { count: formatNumber(activeCrafts.length) });
+    }
+
+    function getTotalCraftQuantity(activeCrafts = getActiveCrafts()) {
+      return activeCrafts.reduce((sum, craft) => sum + craft.quantity, 0);
+    }
+
+    function getCraftNameTokens(activeCrafts = getActiveCrafts()) {
+      const ignoredTokens = new Set(["and", "for", "the", "of"]);
+
+      return activeCrafts.flatMap((craft) => (
+        String(craft.item || "")
+          .toLowerCase()
+          .split(/[^a-z0-9]+/)
+          .filter((token) => token.length >= 3 && !ignoredTokens.has(token))
+      ));
+    }
+
+    function matchesCraftNameToken(name, activeCrafts = getActiveCrafts()) {
+      const normalizedName = String(name || "").toLowerCase();
+      return getCraftNameTokens(activeCrafts).some((token) => normalizedName.includes(token));
+    }
+
+    function getMaterialSortGroup(name, activeCrafts = getActiveCrafts()) {
+      const normalizedName = String(name || "").toLowerCase();
+      if (normalizedName.startsWith("recipe:")) return 0;
+      if (normalizedName.startsWith("crystal:") || normalizedName.startsWith("gemstone")) return 3;
+      if (matchesCraftNameToken(name, activeCrafts)) return 1;
+      return 2;
+    }
+
+    function sortMaterialsByPriority(materials, activeCrafts = getActiveCrafts()) {
+      return [...materials]
+        .map((material, index) => ({ material, index }))
+        .sort((left, right) => {
+          const groupDifference = getMaterialSortGroup(left.material.name, activeCrafts) - getMaterialSortGroup(right.material.name, activeCrafts);
+          return groupDifference || left.index - right.index;
+        })
+        .map((entry) => entry.material);
+    }
+
+    function getTopMaterialRequests(activeCrafts = getActiveCrafts()) {
+      const materialsByName = new Map();
+
+      activeCrafts.forEach((craft) => {
+        craft.materials.forEach((material) => {
+          const quantity = material.perCraft * craft.quantity;
+          if (quantity <= 0) return;
+
+          const current = materialsByName.get(material.name);
+          if (current) {
+            current.quantity += quantity;
+          } else {
+            materialsByName.set(material.name, {
+              name: material.name,
+              quantity,
+              icon: material.icon
+            });
+          }
+        });
+      });
+
+      return sortMaterialsByPriority([...materialsByName.values()], activeCrafts);
+    }
+
+    function getSuccessRateSummary(activeCrafts = getActiveCrafts()) {
+      if (!activeCrafts.length) return "-";
+      const rates = [...new Set(activeCrafts.map((craft) => craft.successRateLabel))];
+      if (rates.length <= 2) return rates.join(" / ");
+
+      const numericRates = activeCrafts.map((craft) => Math.round(craft.successRate * 100));
+      return `${Math.min(...numericRates)}%-${Math.max(...numericRates)}%`;
+    }
+
+    function getExpectedSuccessTotal(activeCrafts = getActiveCrafts()) {
+      return activeCrafts.reduce((sum, craft) => sum + (craft.quantity * craft.successRate), 0);
+    }
+
     function applyCatalogTarget() {
-      const target = getCurrentTarget();
       const nextIcons = {};
       const nextCraftRecipes = {};
 
@@ -1511,29 +1855,28 @@
 
       itemIcons = nextIcons;
       craftRecipes = nextCraftRecipes;
+      repairCraftEntriesFromCatalog();
 
-      if (!target) {
+      const activeCrafts = getActiveCrafts();
+      if (!activeCrafts.length) {
         recipe = createEmptyRecipe();
         return;
       }
 
-      state.selectedTargetKey = target.key || `${target.item.id}:${target.recipeId}`;
       recipe = {
-        key: state.selectedTargetKey,
-        itemId: target.item.id,
-        itemName: target.item.itemName,
-        item: target.item.name,
-        successRate: (target.rate == null ? 100 : target.rate) / 100,
-        successRateLabel: target.rate == null ? "100%" : `${target.rate}%`,
-        mpPerCraft: target.key === defaultCraftKey ? 225 : null,
-        materials: target.recipe.mats.map((material) => {
-          const item = getItemData(material.itemId);
-          return {
-            name: item.name,
-            perCraft: material.count,
-            icon: getIconUrl(item.icon)
-          };
-        })
+        key: activeCrafts.map((craft) => craft.targetKey).join(","),
+        itemId: activeCrafts.length === 1 ? activeCrafts[0].target.item.id : null,
+        itemName: activeCrafts.length === 1 ? activeCrafts[0].itemName : "",
+        item: getCraftSetTitle(activeCrafts),
+        successRate: activeCrafts.length === 1 ? activeCrafts[0].successRate : 0,
+        successRateLabel: getSuccessRateSummary(activeCrafts),
+        mpPerCraft: activeCrafts.length === 1 && activeCrafts[0].targetKey === defaultCraftKey ? 225 : null,
+        materials: getTopMaterialRequests(activeCrafts).map((material) => ({
+          name: material.name,
+          perCraft: material.quantity,
+          quantity: material.quantity,
+          icon: material.icon
+        }))
       };
     }
 
@@ -1547,16 +1890,22 @@
     }
 
     function syncSelectedCraftUi() {
-      const target = getCurrentTarget();
-      const hasTarget = Boolean(target);
-      const itemIcon = getIconUrl(hasTarget ? target.item.icon : "etc_recipe_black_i00");
+      const selectedTarget = getCurrentTarget();
+      const activeCrafts = getActiveCrafts();
+      const primaryTarget = activeCrafts[0]?.target || selectedTarget;
+      const hasActiveCrafts = activeCrafts.length > 0;
+      const hasSingleActiveCraft = activeCrafts.length === 1;
+      const titleItem = getCraftSetTitle(activeCrafts);
+      const itemIcon = getIconUrl(primaryTarget ? primaryTarget.item.icon : "etc_recipe_black_i00");
 
-      elements.title.textContent = hasTarget ? t("pageTitle", { item: recipe.item }) : t("appTitle");
+      elements.title.textContent = hasSingleActiveCraft ? t("pageTitle", { item: titleItem }) : t("appTitle");
       elements.itemIcon.src = itemIcon;
-      elements.itemIcon.alt = hasTarget ? recipe.item : "";
-      elements.sourceLink.href = hasTarget ? `https://l2hub.info/il/items/${recipe.itemName}/craft` : "https://l2hub.info/il";
-      elements.craftSearch.value = hasTarget ? getTargetLabel(target) : "";
-      document.title = hasTarget ? t("pageTitle", { item: recipe.item }) : t("appTitle");
+      elements.itemIcon.alt = primaryTarget ? primaryTarget.item.name : "";
+      elements.sourceLink.href = selectedTarget
+        ? `https://l2hub.info/il/items/${selectedTarget.item.itemName}/craft`
+        : "https://l2hub.info/il";
+      elements.craftSearch.value = selectedTarget ? getTargetLabel(selectedTarget) : "";
+      document.title = hasActiveCrafts ? t("pageTitle", { item: titleItem }) : t("appTitle");
     }
 
     function findCraftTargetFromSearch(value) {
@@ -1576,16 +1925,22 @@
 
     function selectCraftTarget(target, { persist = true } = {}) {
       if (!target || readOnlyMode) return;
-      const targetKey = target.key || `${target.item.id}:${target.recipeId}`;
-      if (state.selectedTargetKey === targetKey) return;
+      const targetKey = getTargetKey(target);
 
       state.selectedTargetKey = targetKey;
-      state.expanded = {
-        [selectedCraftStateKey]: targetKey
-      };
-      const url = new URL(window.location.href);
-      url.searchParams.set("craft", targetKey);
-      window.history.replaceState({}, "", url);
+      const existingCraft = state.crafts.find((craft) => craft.targetKey === targetKey);
+      if (existingCraft) {
+        state.quantity = existingCraft.quantity;
+      } else {
+        state.quantity = Math.max(toSafeNumber(state.quantity, defaultState.quantity), 1);
+      }
+
+      if (!state.crafts.length) {
+        state.crafts = [{ targetKey, quantity: state.quantity }];
+      }
+
+      state.expanded[selectedCraftStateKey] = targetKey;
+      syncCraftUrl();
       applyCatalogTarget();
       render({ persist });
       flushOnlineSave();
@@ -1607,16 +1962,11 @@
           items: data.items || []
         };
         catalogTargetsByKey = new Map(craftCatalog.targets.map((target) => [
-          target.key || `${target.item.id}:${target.recipeId}`,
+          getTargetKey(target),
           target
         ]));
         catalogItemsById = new Map(craftCatalog.items.map((item) => [item.id, item]));
         catalogLoaded = craftCatalog.targets.length > 0;
-
-        if (state.selectedTargetKey && !catalogTargetsByKey.has(state.selectedTargetKey)) {
-          const byItemId = craftCatalog.targets.find((target) => String(target.item.id) === state.selectedTargetKey);
-          state.selectedTargetKey = byItemId?.key || "";
-        }
 
         renderCraftSearchOptions();
         applyCatalogTarget();
@@ -1678,12 +2028,13 @@
       elements.craftSearch.disabled = editingLocked;
       elements.craftSearch.setAttribute("aria-busy", catalogLoaded ? "false" : "true");
       elements.craftQty.disabled = editingLocked;
+      elements.addCraft.disabled = editingLocked;
       elements.saveOnline.disabled = editingLocked;
       elements.copyProcessLink.disabled = readOnlyMode;
       elements.resetInventory.disabled = editingLocked;
       elements.fillRequired.disabled = editingLocked;
 
-      document.querySelectorAll("[data-preset], [data-material], [data-toggle-subitems]").forEach((control) => {
+      document.querySelectorAll("[data-preset], [data-material], [data-toggle-subitems], [data-craft-qty], [data-remove-craft]").forEach((control) => {
         control.disabled = editingLocked;
       });
     }
@@ -1696,11 +2047,13 @@
     function getPublicState() {
       const expanded = {
         ...state.expanded,
-        [selectedCraftStateKey]: state.selectedTargetKey
+        [selectedCraftStateKey]: getPrimaryCraftKey()
       };
 
       return {
+        selectedTargetKey: state.selectedTargetKey,
         quantity: state.quantity,
+        crafts: state.crafts,
         inventory: state.inventory,
         expanded,
         updatedAt: serverTimestamp()
@@ -1805,7 +2158,12 @@
           processId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
           const url = new URL(window.location.href);
           url.searchParams.set("id", processId);
-          url.searchParams.set("craft", state.selectedTargetKey);
+          const craftKey = getPrimaryCraftKey({ activeOnly: true });
+          if (craftKey) {
+            url.searchParams.set("craft", craftKey);
+          } else {
+            url.searchParams.delete("craft");
+          }
           window.history.replaceState({}, "", url);
           hasLoadedRemote = true;
         }
@@ -1854,12 +2212,22 @@
       return formatter.format(value);
     }
 
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[character]));
+    }
+
     function getItemIcon(name) {
       return itemIcons[name] || "https://l2hub.info/s/icons-gf/etc_recipe_black_i00.png";
     }
 
     function getTotal(material) {
-      return material.perCraft * state.quantity;
+      return toSafeNumber(material.quantity ?? material.perCraft);
     }
 
     function getHave(material) {
@@ -1887,7 +2255,7 @@
         const craft = craftRecipes[name];
         if (!craft || row.craftQty <= 0 || !isExpanded(name)) return;
 
-        craft.materials.forEach((material) => {
+        sortMaterialsByPriority(craft.materials).forEach((material) => {
           visit(material.name, depth + 1);
         });
       }
@@ -1962,18 +2330,18 @@
         row.craftQty += craftQty;
         subcraftCount += craftQty;
 
-        craft.materials.forEach((material) => {
+        sortMaterialsByPriority(craft.materials).forEach((material) => {
           requestItem(material.name, material.qty * craftQty, depth + 1);
         });
       }
 
       recipe.materials.forEach((material) => {
-        requestItem(material.name, material.perCraft * state.quantity, 0);
+        requestItem(material.name, getTotal(material), 0);
       });
 
       return {
         rows: [...rows.values()],
-        leafRows: [...leafRows.values()],
+        leafRows: sortMaterialsByPriority([...leafRows.values()]),
         subcraftCount
       };
     }
@@ -1985,7 +2353,7 @@
       const topMaterials = recipe.materials
         .map((material) => ({
           name: material.name,
-          quantity: material.perCraft * state.quantity
+          quantity: getTotal(material)
         }))
         .filter((material) => material.quantity > 0);
 
@@ -2061,20 +2429,151 @@
       elements.overallProgressUnits.textContent = `${formatNumber(progress.have)} / ${formatNumber(progress.required)} ${t("materialsUnit")}`;
     }
 
+    function renderCraftSummaryStats() {
+      const activeCrafts = getActiveCrafts();
+      elements.successRate.textContent = getSuccessRateSummary(activeCrafts);
+      elements.expectedSuccess.textContent = decimalFormatter.format(getExpectedSuccessTotal(activeCrafts));
+    }
+
+    function renderActiveCrafts() {
+      const activeCrafts = getActiveCrafts();
+      elements.activeCraftCount.textContent = formatNumber(activeCrafts.length);
+
+      if (!activeCrafts.length) {
+        elements.activeCrafts.innerHTML = `<div class="craft-cart-empty">${t("noActiveCrafts")}</div>`;
+        return;
+      }
+
+      elements.activeCrafts.innerHTML = activeCrafts.map((craft) => {
+        const itemName = escapeHtml(craft.item);
+        const targetKey = escapeHtml(craft.targetKey);
+        const iconUrl = escapeHtml(getIconUrl(craft.target.item.icon));
+        const successRateLabel = escapeHtml(craft.successRateLabel);
+        const changeQtyLabel = escapeHtml(t("changeCraftQty", { item: craft.item }));
+        const removeCraftLabel = escapeHtml(t("removeCraft", { item: craft.item }));
+
+        return `
+          <div class="craft-cart-row" data-craft-row="${targetKey}">
+            <span class="item-ref">
+              <img src="${iconUrl}" alt="" />
+              <span>
+                ${itemName}
+                <span class="exchange-rate">${successRateLabel}</span>
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              value="${craft.quantity}"
+              aria-label="${changeQtyLabel}"
+              data-craft-qty="${targetKey}"
+              ${editingLocked ? "disabled" : ""}
+            />
+            <button
+              class="craft-remove"
+              type="button"
+              aria-label="${removeCraftLabel}"
+              title="${removeCraftLabel}"
+              data-remove-craft="${targetKey}"
+              ${editingLocked ? "disabled" : ""}
+            >x</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function setSelectedQuantity(quantity) {
+      state.quantity = Math.max(toSafeNumber(quantity, 1), 1);
+      const selectedCraft = state.crafts.find((craft) => craft.targetKey === state.selectedTargetKey);
+      if (selectedCraft) {
+        selectedCraft.quantity = state.quantity;
+      }
+    }
+
+    function upsertSelectedCraft() {
+      if (readOnlyMode || editingLocked) return;
+
+      const target = getCurrentTarget();
+      if (!target) {
+        showToast(t("itemNotFound"));
+        return;
+      }
+
+      const targetKey = getTargetKey(target);
+      const quantity = Math.max(toSafeNumber(elements.craftQty.value, state.quantity), 1);
+      const existingCraft = state.crafts.find((craft) => craft.targetKey === targetKey);
+
+      state.selectedTargetKey = targetKey;
+      state.quantity = quantity;
+      if (existingCraft) {
+        existingCraft.quantity = quantity;
+      } else {
+        state.crafts.push({ targetKey, quantity });
+      }
+
+      state.expanded[selectedCraftStateKey] = targetKey;
+      syncCraftUrl();
+      render();
+      flushOnlineSave();
+      showToast(t(existingCraft ? "craftUpdated" : "craftAdded", { item: target.item.name }));
+    }
+
+    function setActiveCraftQuantity(targetKey, quantity) {
+      const craft = state.crafts.find((entry) => entry.targetKey === targetKey);
+      if (!craft) return false;
+
+      craft.quantity = Math.max(toSafeNumber(quantity, 1), 1);
+      state.selectedTargetKey = targetKey;
+      state.quantity = craft.quantity;
+      state.expanded[selectedCraftStateKey] = targetKey;
+      return true;
+    }
+
+    function removeActiveCraft(targetKey) {
+      if (readOnlyMode || editingLocked) return;
+
+      const target = catalogTargetsByKey.get(targetKey);
+      state.crafts = state.crafts.filter((craft) => craft.targetKey !== targetKey);
+      if (state.selectedTargetKey === targetKey) {
+        state.selectedTargetKey = state.crafts[0]?.targetKey || targetKey;
+        const nextCraft = state.crafts.find((craft) => craft.targetKey === state.selectedTargetKey);
+        if (nextCraft) state.quantity = nextCraft.quantity;
+      }
+
+      syncCraftUrl();
+      render();
+      flushOnlineSave();
+      if (target) showToast(t("craftRemoved", { item: target.item.name }));
+    }
+
     function render({ persist = true, online = true } = {}) {
       applyCatalogTarget();
       state.quantity = Math.max(toSafeNumber(state.quantity, 20), 1);
       syncSelectedCraftUi();
+      renderActiveCrafts();
       elements.craftQty.value = state.quantity;
       elements.craftQty.disabled = editingLocked;
-      elements.successRate.textContent = recipe.successRateLabel;
-      elements.expectedSuccess.textContent = decimalFormatter.format(state.quantity * recipe.successRate);
+      renderCraftSummaryStats();
 
       document.querySelectorAll("[data-preset]").forEach((button) => {
         button.classList.toggle("active", Number(button.dataset.preset) === state.quantity);
         button.disabled = editingLocked;
       });
 
+      renderMaterials();
+      renderOverallProgress();
+      renderMissing();
+      setEditingLocked(editingLocked);
+      if (persist) saveState({ online });
+    }
+
+    function refreshCraftCalculationViews({ persist = true, online = true } = {}) {
+      applyCatalogTarget();
+      syncSelectedCraftUi();
+      elements.craftQty.value = state.quantity;
+      renderCraftSummaryStats();
       renderMaterials();
       renderOverallProgress();
       renderMissing();
@@ -2193,7 +2692,7 @@
       }
 
       recipe.materials.forEach((material) => {
-        requestBuyableMaterial(material.name, material.perCraft * state.quantity);
+        requestBuyableMaterial(material.name, getTotal(material));
       });
 
       return fangExchangeRates
@@ -2241,16 +2740,47 @@
         : `<li><span>${t("noBuyableMissing")}</span><strong>0 ${t("fang")}</strong></li>`;
     }
 
+    function getPendingCrafts(plan = calculateExpandedPlan()) {
+      return sortMaterialsByPriority(plan.rows)
+        .filter((row) => row.craftable && row.craftQty > 0);
+    }
+
+    function renderPendingCrafts(plan = calculateExpandedPlan()) {
+      if (!recipe.materials.length) {
+        elements.pendingCraftTotal.textContent = "0";
+        elements.pendingCraftList.innerHTML = `<li><span>${t("selectCraftFirst")}</span><strong>-</strong></li>`;
+        return;
+      }
+
+      const pendingCrafts = getPendingCrafts(plan);
+      const totalCrafts = pendingCrafts.reduce((sum, craft) => sum + craft.craftQty, 0);
+      elements.pendingCraftTotal.textContent = formatNumber(totalCrafts);
+
+      elements.pendingCraftList.innerHTML = pendingCrafts.length
+        ? pendingCrafts.map((craft) => `
+          <li>
+            <span class="item-ref">
+              <img src="${getItemIcon(craft.name)}" alt="" />
+              <span>${craft.name}</span>
+            </span>
+            <strong>x${formatNumber(craft.craftQty)}</strong>
+          </li>
+        `).join("")
+        : `<li><span>${t("noPendingCrafts")}</span><strong>OK</strong></li>`;
+    }
+
     function renderMissing() {
       if (!recipe.materials.length) {
         elements.missingKinds.textContent = "0";
         elements.missingTotal.textContent = "0";
         elements.missingList.innerHTML = `<li><span>${t("selectCraftFirst")}</span><strong>-</strong></li>`;
+        renderPendingCrafts();
         renderFangCalculator();
         return;
       }
 
-      const missingItems = calculateExpandedPlan().leafRows
+      const plan = calculateExpandedPlan();
+      const missingItems = plan.leafRows
         .filter((material) => material.missing > 0);
 
       elements.missingKinds.textContent = missingItems.length;
@@ -2270,6 +2800,7 @@
         `).join("")
         : `<li><span>${t("allReady")}</span><strong>OK</strong></li>`;
 
+      renderPendingCrafts(plan);
       renderFangCalculator();
     }
 
@@ -2282,11 +2813,18 @@
     }
 
     function getMissingText() {
-      const lines = calculateExpandedPlan().leafRows
+      const plan = calculateExpandedPlan();
+      const lines = plan.leafRows
         .filter((material) => material.missing > 0)
         .map((material) => `${material.name}: ${formatNumber(material.missing)}`);
+      const pendingCrafts = getPendingCrafts(plan);
+      const pendingCraftLines = pendingCrafts.map((craft) => t("pendingCraftTextLine", {
+        item: craft.name,
+        crafts: formatNumber(craft.craftQty)
+      }));
 
-      if (!lines.length) return t("missingTextReady", { item: recipe.item });
+      if (!recipe.materials.length) return t("selectCraftFirst");
+      if (!lines.length && !pendingCraftLines.length) return t("missingTextReady", { item: recipe.item });
 
       const fangEntries = getFangExchangeNeeds();
       if (fangEntries.length) {
@@ -2303,7 +2841,11 @@
         );
       }
 
-      return [t("missingTextHeader", { item: recipe.item, qty: state.quantity }), ...lines].join("\n");
+      if (pendingCraftLines.length) {
+        lines.push("", t("pendingCraftTextHeader"), ...pendingCraftLines);
+      }
+
+      return [t("missingTextHeader", { item: recipe.item, qty: getTotalCraftQuantity() }), ...lines].join("\n");
     }
 
     function getActiveMaterialInput() {
@@ -2381,15 +2923,41 @@
 
     elements.craftQty.addEventListener("input", (event) => {
       if (readOnlyMode) return;
-      state.quantity = Math.max(toSafeNumber(event.target.value, 1), 1);
+      setSelectedQuantity(event.target.value);
       render();
     });
 
     elements.craftQty.addEventListener("change", (event) => {
       if (readOnlyMode) return;
-      state.quantity = Math.max(toSafeNumber(event.target.value, 1), 1);
+      setSelectedQuantity(event.target.value);
       render();
       flushOnlineSave();
+    });
+
+    elements.addCraft.addEventListener("click", () => {
+      upsertSelectedCraft();
+    });
+
+    elements.activeCrafts.addEventListener("input", (event) => {
+      if (readOnlyMode || editingLocked) return;
+      if (!event.target.matches("[data-craft-qty]")) return;
+      if (!setActiveCraftQuantity(event.target.dataset.craftQty, event.target.value)) return;
+      refreshCraftCalculationViews({ online: true });
+    });
+
+    elements.activeCrafts.addEventListener("change", (event) => {
+      if (readOnlyMode || editingLocked) return;
+      if (!event.target.matches("[data-craft-qty]")) return;
+      if (!setActiveCraftQuantity(event.target.dataset.craftQty, event.target.value)) return;
+      render();
+      flushOnlineSave();
+    });
+
+    elements.activeCrafts.addEventListener("click", (event) => {
+      if (readOnlyMode || editingLocked) return;
+      const removeButton = event.target.closest("[data-remove-craft]");
+      if (!removeButton) return;
+      removeActiveCraft(removeButton.dataset.removeCraft);
     });
 
     elements.materials.addEventListener("input", (event) => {
@@ -2449,7 +3017,7 @@
     document.querySelectorAll("[data-preset]").forEach((button) => {
       button.addEventListener("click", () => {
         if (readOnlyMode) return;
-        state.quantity = Number(button.dataset.preset);
+        setSelectedQuantity(button.dataset.preset);
         render();
         flushOnlineSave();
       });
