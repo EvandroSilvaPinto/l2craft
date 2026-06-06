@@ -471,6 +471,21 @@
       transition: width 160ms ease;
     }
 
+    .fireworks-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      z-index: 40;
+    }
+
+    .fireworks-canvas.active {
+      opacity: 1;
+    }
+
     [data-progress-value] {
       color: var(--text);
     }
@@ -777,6 +792,8 @@
 </head>
 
 <body>
+  <canvas class="fireworks-canvas" id="fireworksCanvas" aria-hidden="true"></canvas>
+
   <main class="app">
     <div class="language-switcher" data-i18n-aria-label="languageSwitcher" aria-label="Idioma">
       <button class="lang-button" type="button" data-language="pt" aria-label="Português" title="Português">🇧🇷</button>
@@ -832,7 +849,7 @@
 
     <section class="craft-progress" data-i18n-aria-label="overallCraftProgress" aria-label="Progresso geral do craft">
       <div class="craft-progress-header">
-        <span data-i18n="overallWithSubcrafts">Progresso geral com subcrafts</span>
+        <span data-i18n="overallWithSubcrafts">Progresso geral</span>
         <span class="craft-progress-meta">
           <span id="overallProgressText">0%</span>
           <span id="overallProgressUnits">0 / 0 materiais</span>
@@ -1134,7 +1151,7 @@
         craftRemoved: "{item} removido do calculo.",
         multiCraftTitle: "{count} itens",
         overallCraftProgress: "Progresso geral do craft",
-        overallWithSubcrafts: "Progresso geral com subcrafts",
+        overallWithSubcrafts: "Progresso geral",
         materialsUnit: "materiais",
         summary: "Resumo",
         overallProcess: "Processo geral",
@@ -1428,6 +1445,7 @@
       overallProgressText: document.querySelector("#overallProgressText"),
       overallProgressCard: document.querySelector("#overallProgressCard"),
       overallProgressUnits: document.querySelector("#overallProgressUnits"),
+      fireworksCanvas: document.querySelector("#fireworksCanvas"),
       successRate: document.querySelector("#successRate"),
       expectedSuccess: document.querySelector("#expectedSuccess"),
       missingKinds: document.querySelector("#missingKinds"),
@@ -1524,6 +1542,10 @@
       params: {},
       isKey: true
     };
+    let previousOverallProgressPercent = null;
+    let fireworksAnimationFrame = 0;
+    let fireworksStopTimer = 0;
+    let fireworksParticles = [];
 
     function normalizeState(value) {
       const craftParam = urlParams.get("craft");
@@ -2421,12 +2443,109 @@
       };
     }
 
+    function maybeCelebrateOverallCompletion(percent) {
+      const completedNow = percent >= 100;
+      const wasIncomplete = previousOverallProgressPercent !== null && previousOverallProgressPercent < 100;
+      previousOverallProgressPercent = percent;
+
+      if (completedNow && wasIncomplete) {
+        launchFireworks();
+      }
+    }
+
+    function launchFireworks() {
+      const canvas = elements.fireworksCanvas;
+      if (!canvas || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const context = canvas.getContext("2d");
+      if (!context) return;
+
+      const colors = ["#fac459", "#ffce6d", "#ea6944", "#21af69", "#5db7ff", "#f7f0df"];
+      const resizeCanvas = () => {
+        const dpr = Math.max(window.devicePixelRatio || 1, 1);
+        canvas.width = Math.round(window.innerWidth * dpr);
+        canvas.height = Math.round(window.innerHeight * dpr);
+        context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      const burst = (x, y, count) => {
+        for (let index = 0; index < count; index += 1) {
+          const angle = (Math.PI * 2 * index) / count + Math.random() * 0.28;
+          const speed = 1.7 + Math.random() * 4.2;
+          fireworksParticles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            radius: 1.4 + Math.random() * 2.2,
+            alpha: 1,
+            decay: 0.011 + Math.random() * 0.012,
+            gravity: 0.035 + Math.random() * 0.025,
+            color: colors[Math.floor(Math.random() * colors.length)]
+          });
+        }
+      };
+      const animate = () => {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.globalCompositeOperation = "lighter";
+
+        fireworksParticles = fireworksParticles.filter((particle) => particle.alpha > 0.02);
+        fireworksParticles.forEach((particle) => {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.vy += particle.gravity;
+          particle.vx *= 0.992;
+          particle.vy *= 0.992;
+          particle.alpha -= particle.decay;
+
+          context.globalAlpha = Math.max(particle.alpha, 0);
+          context.beginPath();
+          context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+          context.fillStyle = particle.color;
+          context.fill();
+        });
+
+        context.globalAlpha = 1;
+        context.globalCompositeOperation = "source-over";
+
+        if (fireworksParticles.length) {
+          fireworksAnimationFrame = window.requestAnimationFrame(animate);
+        } else {
+          canvas.classList.remove("active");
+          fireworksAnimationFrame = 0;
+        }
+      };
+
+      window.cancelAnimationFrame(fireworksAnimationFrame);
+      window.clearTimeout(fireworksStopTimer);
+      resizeCanvas();
+      fireworksParticles = [];
+      canvas.classList.add("active");
+
+      [0.18, 0.34, 0.5, 0.66, 0.82].forEach((position, index) => {
+        window.setTimeout(() => {
+          burst(
+            window.innerWidth * position,
+            window.innerHeight * (0.18 + Math.random() * 0.28),
+            34 + index * 4
+          );
+          if (!fireworksAnimationFrame) {
+            fireworksAnimationFrame = window.requestAnimationFrame(animate);
+          }
+        }, index * 190);
+      });
+
+      fireworksStopTimer = window.setTimeout(() => {
+        fireworksParticles = [];
+      }, 3200);
+    }
+
     function renderOverallProgress() {
       const progress = getOverallProgress();
       elements.overallProgressBar.style.width = `${progress.percent}%`;
       elements.overallProgressText.textContent = `${progress.percent}%`;
       elements.overallProgressCard.textContent = `${progress.percent}%`;
       elements.overallProgressUnits.textContent = `${formatNumber(progress.have)} / ${formatNumber(progress.required)} ${t("materialsUnit")}`;
+      maybeCelebrateOverallCompletion(progress.percent);
     }
 
     function renderCraftSummaryStats() {
