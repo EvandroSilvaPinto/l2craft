@@ -1217,7 +1217,7 @@
         realtimeError: "Erro no tempo real. Confira Firebase, Firestore e regras.",
         localOnly: "Somente local",
         enableFirestore: "Ative Cloud Firestore no Firebase.",
-        firestorePermission: "Firestore sem permissao. Confira as regras.",
+        firestorePermission: "Firestore sem permissao para salvar. Atualize as regras em craftProcesses.",
         firestoreError: "Erro no Firestore. Confira o Firebase.",
         footerText: "Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2.440. A expectativa de sucesso e apenas media estatistica; cada tentativa continua independente. O calculo de Fang of Stakato e referente ao servidor Eternal do L2 Reborn."
       },
@@ -1313,7 +1313,7 @@
         realtimeError: "Realtime error. Check Firebase, Firestore, and rules.",
         localOnly: "Local only",
         enableFirestore: "Enable Cloud Firestore in Firebase.",
-        firestorePermission: "Firestore has no permission. Check the rules.",
+        firestorePermission: "Firestore has no permission to save. Update the rules for craftProcesses.",
         firestoreError: "Firestore error. Check Firebase.",
         footerText: "Arcana Mace Interlude: item ID 6579, Crystal: S Grade 2,440. Expected success is only a statistical average; every attempt remains independent. The Fang of Stakato calculation refers to the Eternal server on L2 Reborn."
       },
@@ -1648,6 +1648,15 @@
       }
 
       return t("firestoreError");
+    }
+
+    function getFirebaseClientErrorMessage(error) {
+      const message = String(error?.message || "");
+      if (error?.code === "permission-denied" || message.toLowerCase().includes("missing or insufficient permissions")) {
+        return t("firestorePermission");
+      }
+
+      return message || t("onlineSaveError");
     }
 
     async function ensureFirestoreReady(id) {
@@ -2150,8 +2159,9 @@
           hasLoadedRemote = true;
           isLoadingRemote = false;
           setEditingLocked(false);
-          setSyncStatus("error", "syncError");
-          showToast(t("realtimeError"));
+          const message = getFirebaseClientErrorMessage(error);
+          setSyncStatus("error", message);
+          showToast(message);
         }
       );
 
@@ -2203,7 +2213,7 @@
         }
       } catch (error) {
         console.error(error);
-        const message = error?.message || t("onlineSaveError");
+        const message = getFirebaseClientErrorMessage(error);
         setSyncStatus("error", message);
         showToast(message);
       }

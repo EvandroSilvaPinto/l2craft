@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /craftProcesses/{processId} {
+      function validId() {
+        return processId.matches('^[A-Za-z0-9_-]{20,80}$');
+      }
+
+      function validData() {
+        return request.resource.data.keys().hasOnly([
+          'selectedTargetKey',
+          'quantity',
+          'crafts',
+          'inventory',
+          'expanded',
+          'updatedAt'
+        ])
+        && request.resource.data.selectedTargetKey is string
+        && request.resource.data.quantity is int
+        && request.resource.data.quantity >= 1
+        && request.resource.data.quantity <= 9999
+        && request.resource.data.crafts is list
+        && request.resource.data.crafts.size() <= 50
+        && request.resource.data.inventory is map
+        && request.resource.data.expanded is map
+        && request.resource.data.updatedAt is timestamp;
+      }
+
+      allow get: if validId();
+      allow list: if false;
+      allow create, update: if validId() && validData();
+      allow delete: if false;
+    }
+  }
+}
